@@ -1,0 +1,19 @@
+{
+  "project_type": "Movie / Short Film",
+  "items": [
+    {
+      "act_id": "act_001",
+      "position": 1,
+      "title": "Act 1",
+      "short_description": "Setup",
+      "scenes": []
+    },
+    {
+      "act_id": "act_002",
+      "position": 2,
+      "title": "Act 2",
+      "short_description": "Confrontation",
+      "scenes": []
+    }
+  ]
+}
