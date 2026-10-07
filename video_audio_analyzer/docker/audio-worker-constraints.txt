@@ -1,0 +1,4 @@
+# Keep the CUDA-enabled Torch already present in the PE-AV image. CLAP's
+# NumPy<2 requirement is isolated to this analyzer-only child image.
+torch==2.11.0+cu130
+numpy==1.26.4

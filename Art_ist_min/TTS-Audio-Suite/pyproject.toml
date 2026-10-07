@@ -1,0 +1,15 @@
+[project]
+name = "tts_audio_suite"
+description = "TTS Audio Suite - Universal multi-engine TTS extension for ComfyUI with unified architecture supporting IndexTTS-2, ChatterBox, Chatterbox Multilingual TTS (Official 23-Lang), F5-TTS, Higgs Audio 2, VibeVoice, and RVC engines. It has character voice management, SRT subtitle TTS support, and audio processing capabilities."
+version = "4.24.17"
+license = {file = "LICENSE"}
+
+[project.urls]
+Repository = "https://github.com/diodiogod/TTS-Audio-Suite"
+
+# ComfyUI Registry metadata
+[tool.comfy]
+PublisherId = "diogod"
+DisplayName = "TTS Audio Suite"
+Icon = "https://raw.githubusercontent.com/diodiogod/TTS-Audio-Suite/main/example_workflows/Chatterbox SRT.jpg"
+includes = []

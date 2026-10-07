@@ -1,0 +1,51 @@
+# Isolated PE-AV worker. This derives from the existing image only as a
+# read-only base; it creates a new image and never modifies the source image.
+FROM setup_comfy_and-stuff-comfyui:latest
+
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 https://github.com/facebookresearch/perception_models.git /opt/perception_models \
+    # The upstream requirements include decord==0.6.0, which has no wheel for
+    # this host's aarch64/Python combination.  Install the package itself
+    # without its optional evaluation/video-reader dependencies, then install
+    # the runtime pieces used by PE-AV explicitly.  This image is derived from
+    # the ComfyUI image; the source image and its environments are unchanged.
+    && pip install --no-cache-dir --no-deps -e /opt/perception_models \
+    && pip install --no-cache-dir \
+       omegaconf==2.3.0 msgspec==0.19.0 sentencepiece==0.2.0 \
+       tiktoken==0.9.0 blobfile==3.0.0 einops==0.8.1 \
+       iopath==0.1.10 torchcodec timm==1.0.30 lancedb==0.30.0 \
+       transformers==5.17.0 \
+       huggingface_hub
+
+# Optional, isolated sound-event fallback.  These packages are never added to
+# the shared React/blender311 or ComfyUI environments.
+RUN pip install --no-cache-dir \
+       librosa==0.11.0 soundfile==0.13.1 torchlibrosa==0.1.0 matplotlib==3.10.8 \
+    && pip install --no-cache-dir --no-deps panns-inference==0.1.1
+
+# Optional local ASR runtime. The large-v3 checkpoint is deliberately not
+# downloaded during image build; mount a prepared model directory at runtime.
+RUN pip install --no-cache-dir faster-whisper==1.2.0
+
+# Isolated source-separation runtime. Model weights are fetched/cached only in
+# the analyzer worker at first use; no shared ComfyUI environment is changed.
+RUN pip install --no-cache-dir demucs==4.0.1
+
+# Optional persistent speaker identity embeddings, isolated from shared apps.
+RUN pip install --no-cache-dir speechbrain==1.0.3
+
+# The official package imports xFormers at module import time even though the
+# PE-AV audio/visual path uses native PyTorch attention. Carry the isolated
+# ARM-compatible fallback patch without changing the upstream checkout.
+COPY vendor/perception_models/core/transformer.py /opt/perception_models/core/transformer.py
+
+ENV PE_AV_MODEL_DIR=/models/pe-av-base
+ENV PYTHONPATH=/opt/perception_models:/app/src
+WORKDIR /app
+COPY src ./src
+COPY scripts ./scripts
+ENTRYPOINT ["python", "/app/scripts/peav_preflight.py"]

@@ -1,0 +1,6 @@
+{
+  "1": {"class_type": "LoadAudio", "inputs": {"audio": ""}},
+  "2": {"class_type": "VoiceFixerNode", "inputs": {"audio": ["1", 0], "restoration_mode": "0 - Original (Default)", "use_cuda": true}},
+  "3": {"class_type": "SaveAudioAdvanced", "inputs": {"audio": ["2", 0], "filename_prefix": "story_builder/audio", "format": "flac"}},
+  "4": {"class_type": "PreviewAny", "inputs": {"source": ["2", 1]}}
+}

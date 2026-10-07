@@ -1,0 +1,4 @@
+interface:
+  display_name: "TTS Prepare F5 Finetune"
+  short_description: "Prepare validated F5 fine-tune datasets"
+  default_prompt: "Use $tts-prepare-f5-finetune to validate and prepare this voice dataset for F5-TTS fine-tuning."

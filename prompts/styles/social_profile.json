@@ -1,0 +1,15 @@
+{
+  "style_id": "social_profile",
+  "name": "Social / Instagram Profile",
+  "version": 1,
+  "description": "Vertical-friendly short-form storytelling with a fast hook and retention beats.",
+  "stages": {
+    "story": "Open with a clear hook, preserve the creator voice and resolve the promise quickly.",
+    "scene_direction": "Plan vertical-safe framing, readable captions, rapid but coherent beats and a strong ending.",
+    "image": "Keep the subject centered in a safe vertical crop with expressive, immediately readable composition.",
+    "audio": "Prioritize intelligible speech, beat-synced music and brief accent effects without overwhelming the voice.",
+    "video": "Use energetic but motivated movement, captions-safe framing and short transitions.",
+    "review": "Check hook clarity, retention beats, crop safety, caption space, pacing and creator identity."
+  },
+  "analysis": {"tone": ["direct", "energetic"], "camera_priority": "mobile readability", "pacing": "short-form"}
+}

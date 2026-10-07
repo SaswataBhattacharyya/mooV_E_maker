@@ -1,5 +1,0 @@
-streamlit
-ollama
-pydantic
-jsonschema
-python-dotenv

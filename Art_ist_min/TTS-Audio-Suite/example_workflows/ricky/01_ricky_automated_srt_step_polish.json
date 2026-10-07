@@ -1,0 +1,604 @@
+{
+  "id": "bdd4784c-05b7-4520-bd45-e2eb61eb5d40",
+  "revision": 0,
+  "last_node_id": 155,
+  "last_link_id": 325,
+  "nodes": [
+    {
+      "id": 155,
+      "type": "Qwen3TTSEngineNode",
+      "pos": [
+        -2750,
+        1630
+      ],
+      "size": [
+        400,
+        550
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "TTS_engine",
+          "type": "TTS_ENGINE",
+          "links": [
+            250
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Qwen3TTSEngineNode",
+        "cnr_id": "chatterbox_srt_voice",
+        "ver": "0068acb849b91ff7bdcfa00998207e772599ff1a",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "0.6B",
+        "auto",
+        "None (Zero-shot / Custom)",
+        "Auto",
+        "",
+        50,
+        1,
+        0.9,
+        1.05,
+        2048,
+        "auto",
+        "auto",
+        false,
+        true,
+        false,
+        "default",
+        true,
+        "English",
+        "Translate the speech from {source_language} into {target_language} text. Return only the translated text."
+      ],
+      "color": "#222",
+      "bgcolor": "#000",
+      "title": "Qwen3 TTS Engine"
+    },
+    {
+      "id": 140,
+      "type": "CharacterVoicesNode",
+      "pos": [
+        -1470,
+        1400
+      ],
+      "size": [
+        232.96051025390625,
+        186
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "opt_audio_input",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "opt_narrator",
+          "type": "NARRATOR_VOICE",
+          "links": [
+            235
+          ]
+        },
+        {
+          "name": "character_name",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CharacterVoicesNode",
+        "cnr_id": "tts_audio_suite",
+        "ver": "ee95cad1f155eceb1442723c7f351949b30361e3",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.4.1",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "voices_examples/David_Attenborough CC3.wav",
+        "Type the transcription here",
+        ""
+      ],
+      "color": "#432",
+      "bgcolor": "#653",
+      "title": "Narrator Voice"
+    },
+    {
+      "id": 146,
+      "type": "StringMultilineTagEditor",
+      "pos": [
+        -4010,
+        3320
+      ],
+      "size": [
+        900,
+        600
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": [
+            242
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StringMultilineTagEditor",
+        "cnr_id": "chatterbox_srt_voice",
+        "ver": "4a9b74fe7c6e1b194b3fffd33b6acca1a199b55f",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.4.1"
+        }
+      },
+      "widgets_values": [
+        "1\n00:00:00,000 --> 00:00:03,200\n[Narrator] The cave was silent.\n\n2\n00:00:03,400 --> 00:00:06,400\n[Alice] Did you hear that? <style:whisper:2>\n\n3\n00:00:06,700 --> 00:00:10,400\n[Bob] Relax. It is probably just the wind. <emotion:calm>\n\n4\n00:00:10,700 --> 00:00:14,400\n[Alice] No, I am serious haha <Laughter:2> <restore>\n"
+      ],
+      "title": "SRT with Step Tags"
+    },
+    {
+      "id": 133,
+      "type": "UnifiedTTSSRTNode",
+      "pos": [
+        -2000,
+        3240
+      ],
+      "size": [
+        404.7402648925781,
+        545.216796875
+      ],
+      "flags": {},
+      "order": 31,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "TTS_engine",
+          "type": "TTS_ENGINE",
+          "link": 230
+        },
+        {
+          "name": "opt_narrator",
+          "shape": 7,
+          "type": "*",
+          "link": 325
+        },
+        {
+          "name": "srt_content",
+          "type": "STRING",
+          "widget": {
+            "name": "srt_content"
+          },
+          "link": 242
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            231
+          ]
+        },
+        {
+          "name": "generation_info",
+          "type": "STRING",
+          "links": [
+            232
+          ]
+        },
+        {
+          "name": "timing_report",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "Adjusted_SRT",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UnifiedTTSSRTNode",
+        "cnr_id": "chatterbox_srt_voice",
+        "ver": "5e4c39b3d25a437f83dd71cf21b2fad282eda9e1",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.4.1",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "1\n00:00:00,000 --> 00:00:03,200\n[Narrator] The cave was silent.\n\n2\n00:00:03,400 --> 00:00:06,400\n[Alice] Did you hear that? <style:whisper:2>\n\n3\n00:00:06,700 --> 00:00:10,400\n[Bob] Relax. It is probably just the wind. <emotion:calm>\n\n4\n00:00:10,700 --> 00:00:14,400\n[Alice] No, I am serious haha <Laughter:2> <restore>\n",
+        "voices_examples/Clint_Eastwood CC3 (enhanced2).wav",
+        2519695028,
+        "fixed",
+        "smart_natural",
+        true,
+        0.01,
+        1,
+        0.5,
+        2,
+        0
+      ],
+      "color": "#223",
+      "bgcolor": "#335",
+      "title": "Timed Multi-Character + Step Polish"
+    },
+    {
+      "id": 79,
+      "type": "PreviewAudio",
+      "pos": [
+        -1500,
+        3240
+      ],
+      "size": [
+        441.48828125,
+        88
+      ],
+      "flags": {},
+      "order": 37,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 231
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewAudio",
+        "cnr_id": "comfy-core",
+        "ver": "0.3.39",
+        "ue_properties": {
+          "version": "7.4.1",
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 121,
+      "type": "PreviewAny",
+      "pos": [
+        -1540,
+        3370
+      ],
+      "size": [
+        486.6275634765625,
+        420.8500061035156
+      ],
+      "flags": {},
+      "order": 38,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 232
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewAny",
+        "cnr_id": "comfy-core",
+        "ver": "0.3.59",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.4.1",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        null,
+        null,
+        null
+      ],
+      "title": "generation_info"
+    },
+    {
+      "id": 53,
+      "type": "Reroute",
+      "pos": [
+        -2190,
+        3240
+      ],
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 250
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "TTS_ENGINE",
+          "links": [
+            230
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false,
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.4.1",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 142,
+      "type": "Reroute",
+      "pos": [
+        -1200,
+        1230
+      ],
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 235
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "NARRATOR_VOICE",
+          "links": [
+            325
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false,
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.4.1",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      250,
+      155,
+      0,
+      53,
+      0,
+      "TTS_ENGINE"
+    ],
+    [
+      230,
+      53,
+      0,
+      133,
+      0,
+      "TTS_ENGINE"
+    ],
+    [
+      235,
+      140,
+      0,
+      142,
+      0,
+      "*"
+    ],
+    [
+      325,
+      142,
+      0,
+      133,
+      1,
+      "NARRATOR_VOICE"
+    ],
+    [
+      242,
+      146,
+      0,
+      133,
+      2,
+      "STRING"
+    ],
+    [
+      231,
+      133,
+      0,
+      79,
+      0,
+      "AUDIO"
+    ],
+    [
+      232,
+      133,
+      1,
+      121,
+      0,
+      "*"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 6,
+      "title": "Simple text exemple",
+      "bounding": [
+        -4020,
+        430,
+        920,
+        690
+      ],
+      "color": "#8A8",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 8,
+      "title": "Multi-char with [Tags + Second pass Inline Editing]",
+      "bounding": [
+        -4020,
+        1130,
+        920,
+        680
+      ],
+      "color": "#8A8",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 15,
+      "title": "Basic SRT Exemple",
+      "bounding": [
+        -2030,
+        3160,
+        986.889892578125,
+        659.2364501953125
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 16,
+      "title": "⚙️ Engine",
+      "bounding": [
+        -2820,
+        1560,
+        550,
+        650
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 18,
+      "title": "TTS TEXT",
+      "bounding": [
+        -2030,
+        980,
+        2330,
+        690
+      ],
+      "color": "#8A8",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 19,
+      "title": "SRT",
+      "bounding": [
+        -4020,
+        3240,
+        920,
+        690
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 21,
+      "title": "Voice Designer",
+      "bounding": [
+        -2020,
+        2080,
+        950,
+        840
+      ],
+      "color": "#b58b2a",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 22,
+      "title": "TTS using Voice Designer Character with Switching Tag",
+      "bounding": [
+        -1050,
+        2080,
+        3110,
+        840
+      ],
+      "color": "#b58b2a",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 23,
+      "title": "Qwen3 ✏️ ASR Transcribe",
+      "bounding": [
+        -2030,
+        4070,
+        3120,
+        1440
+      ],
+      "color": "#A88",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6115909044841719,
+      "offset": [
+        1884.846264843364,
+        -704.5592295064926
+      ]
+    },
+    "frontendVersion": "1.38.13",
+    "ue_links": [],
+    "links_added_by_ue": [],
+    "VHS_latentpreview": true,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true,
+    "workflowRendererVersion": "LG"
+  },
+  "version": 0.4
+}

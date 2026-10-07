@@ -1,0 +1,7 @@
+{
+  "1": {"class_type": "LoadAudio", "inputs": {"audio": ""}},
+  "2": {"class_type": "StepAudioEditXEngineNode", "inputs": {"model_path": "local:Step-Audio-EditX", "device": "auto", "torch_dtype": "bfloat16", "quantization": "none", "temperature": 0.7, "do_sample": true, "max_new_tokens": 8192}},
+  "3": {"class_type": "StepAudioEditXAudioEditorNode", "inputs": {"input_audio": ["1", 0], "audio_text": "", "edit_type": "style", "emotion": "none", "style": "whisper", "speed": "none", "n_edit_iterations": 1, "tts_engine": ["2", 0]}},
+  "4": {"class_type": "SaveAudioAdvanced", "inputs": {"audio": ["3", 0], "filename_prefix": "story_builder/audio", "format": "flac"}},
+  "5": {"class_type": "PreviewAny", "inputs": {"source": ["3", 1]}}
+}

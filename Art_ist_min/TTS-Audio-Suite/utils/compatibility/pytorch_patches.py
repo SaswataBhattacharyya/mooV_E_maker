@@ -1,0 +1,248 @@
+"""
+PyTorch/TorchAudio Compatibility Patches
+
+Handles compatibility issues with PyTorch and TorchAudio versions.
+Critical: Global monkey-patching of torchaudio.save/load for PyTorch 2.9 TorchCodec DLL errors.
+"""
+
+import warnings
+from typing import Optional
+
+
+class PyTorchPatches:
+    """Centralized PyTorch/TorchAudio compatibility patches manager"""
+
+    _patches_applied = set()
+
+    @classmethod
+    def patch_torch_distributed_reduceop(cls, verbose: bool = True):
+        """
+        Patch torch.distributed.ReduceOp for incomplete Windows AMD ROCm builds.
+
+        Issues Fixed:
+        1. PyTorch 2.9.1+rocmsdk20260116 (Windows AMD ROCm 7.2) incomplete torch.distributed
+           - Symptom: "module 'torch.distributed' has no attribute 'ReduceOp'" on engine initialization
+           - Root cause: Windows AMD ROCm nightly builds have partial torch.distributed (missing ReduceOp)
+           - Fix: Create stub ReduceOp class when missing to allow bundled engines to import safely
+
+        This allows bundled engine implementations (Step Audio EditX, Higgs Audio, IndexTTS, etc.)
+        to import without crashing, even though distributed training won't work on this platform.
+        Single-GPU inference works fine with the stub.
+        """
+        if "torch_distributed_reduceop" in cls._patches_applied:
+            return
+
+        try:
+            import torch
+
+            # Check if torch.distributed exists but is incomplete
+            if hasattr(torch, 'distributed'):
+                if not hasattr(torch.distributed, 'ReduceOp'):
+                    # Create stub ReduceOp class
+                    class ReduceOp:
+                        """Stub ReduceOp for incomplete torch.distributed implementations"""
+                        SUM = 0
+                        PRODUCT = 1
+                        MIN = 2
+                        MAX = 3
+                        BAND = 4
+                        BOR = 5
+                        BXOR = 6
+                        AVG = 7
+                        PREMUL_SUM = 8
+
+                    # Inject stub into torch.distributed
+                    torch.distributed.ReduceOp = ReduceOp
+
+                    cls._patches_applied.add("torch_distributed_reduceop")
+
+                    if verbose:
+                        print("   🔧 torch.distributed.ReduceOp stub created (Windows AMD ROCm compatibility)")
+
+        except Exception as e:
+            warnings.warn(f"torch.distributed.ReduceOp patching failed: {e}")
+
+    @classmethod
+    def apply_all_patches(cls, verbose: bool = True):
+        """Apply all necessary PyTorch compatibility patches"""
+        cls.patch_torch_distributed_reduceop(verbose=verbose)
+        cls.patch_torchaudio_torchcodec(verbose=verbose)
+        cls.suppress_torchaudio_warnings(verbose=verbose)
+
+    @classmethod
+    def patch_torchaudio_torchcodec(cls, verbose: bool = True):
+        """
+        Patch torchaudio.save() and torchaudio.load() to use scipy instead of TorchCodec.
+
+        Issues Fixed:
+        1. PyTorch 2.9.0+cu128 TorchCodec incompatibility on Windows
+           - Symptom: "Could not load libtorchcodec" errors during WAV file operations
+           - Root cause: TorchCodec DLL doesn't support Windows
+           - Fix: Globally monkey-patch to use scipy.io.wavfile (pure Python, no native deps)
+
+        2. PyTorch 2.9 changed torchaudio.load() behavior
+           - Returns raw int16 values (±32767) instead of normalized float [-1, 1]
+           - Handled by safe_load_audio() utility function which normalizes audio after loading
+           - This global patch ensures scipy fallback also normalizes consistently
+
+        Implementation: Globally monkey-patches save/load for WAV files to use scipy,
+        which is pure Python with no dependencies (no FFmpeg, no TorchCodec DLL).
+        This fixes ALL direct torchaudio.save/load calls across the entire codebase without
+        needing individual fixes in every file.
+        """
+        if "torchaudio_torchcodec" in cls._patches_applied:
+            return
+
+        try:
+            import torch
+            import torchaudio
+            from scipy.io import wavfile as scipy_wavfile
+            import numpy as np
+            from io import BytesIO
+
+            # Only apply patch on PyTorch 2.9+
+            torch_version = tuple(map(int, torch.__version__.split('.')[:2]))
+            if torch_version < (2, 9):
+                return
+
+
+            # Store original functions
+            _original_torchaudio_save = torchaudio.save
+            _original_torchaudio_load = torchaudio.load
+
+            def _patched_torchaudio_save(uri, src, sample_rate, **kwargs):
+                """
+                Wrapper for torchaudio.save that uses scipy for WAV files to avoid TorchCodec DLL issues.
+                Falls back to original torchaudio.save for non-WAV formats.
+                """
+                try:
+                    # Only patch WAV files - use original for other formats
+                    if isinstance(uri, str) and uri.lower().endswith('.wav'):
+                        # Convert tensor to numpy
+                        if hasattr(src, 'cpu'):  # torch.Tensor
+                            src_np = src.cpu().detach().numpy()
+                        else:
+                            src_np = src
+
+                        # Convert to float32 for scipy
+                        src_np = src_np.astype(np.float32)
+
+                        # scipy expects (samples, channels), transpose if needed
+                        if src_np.ndim == 2 and src_np.shape[0] <= 2:
+                            # Likely (channels, samples) - transpose to (samples, channels)
+                            src_np = src_np.T
+
+                        scipy_wavfile.write(uri, sample_rate, src_np)
+                        return
+                except Exception as e:
+                    # Fallback to original torchaudio.save if scipy fails
+                    pass
+
+                # Use original for non-WAV or if patched version fails
+                return _original_torchaudio_save(uri, src, sample_rate, **kwargs)
+
+            def _patched_torchaudio_load(uri, *args, **kwargs):
+                """
+                Wrapper for torchaudio.load that uses scipy for WAV files to avoid TorchCodec DLL issues.
+                Falls back to original torchaudio.load for non-WAV formats.
+                Also normalizes int16 audio to float [-1, 1] range (PyTorch 2.9 change).
+                """
+                try:
+                    # Handle both file paths (str) and file-like objects (BytesIO)
+                    is_wav = False
+                    if isinstance(uri, str):
+                        is_wav = uri.lower().endswith('.wav')
+                    elif isinstance(uri, BytesIO):
+                        # For BytesIO, we'll try scipy and fall back to original
+                        is_wav = True
+
+                    if is_wav:
+                        # Load with scipy
+                        sample_rate, waveform_np = scipy_wavfile.read(uri)
+                        waveform = torch.from_numpy(waveform_np.astype(np.float32))
+
+                        # Normalize int16 range to float [-1, 1]
+                        # PyTorch 2.9 changed behavior to return raw int16 values
+                        max_val = torch.max(torch.abs(waveform))
+                        if max_val > 1.0:
+                            waveform = waveform / 32767.0
+
+                        # Reshape to (channels, samples) format
+                        if waveform.ndim == 1:
+                            waveform = waveform.unsqueeze(0)
+                        elif waveform.ndim == 2:
+                            # Assume (samples, channels), transpose to (channels, samples)
+                            waveform = waveform.T
+
+                        return waveform, sample_rate
+                except Exception as e:
+                    # Fallback to original torchaudio.load if scipy fails
+                    pass
+
+                # Use original for non-WAV or if patched version fails
+                return _original_torchaudio_load(uri, *args, **kwargs)
+
+            # Apply the monkey-patches globally
+            torchaudio.save = _patched_torchaudio_save
+            torchaudio.load = _patched_torchaudio_load
+
+            cls._patches_applied.add("torchaudio_torchcodec")
+
+            if verbose:
+                print("   🔧 torchaudio.save/load globally patched (scipy for WAV files, no TorchCodec)")
+
+        except ImportError as e:
+            warnings.warn(f"scipy not available for torchaudio patch: {e}")
+        except Exception as e:
+            warnings.warn(f"torchaudio TorchCodec patching failed: {e}")
+
+    @classmethod
+    def suppress_torchaudio_warnings(cls, verbose: bool = True):
+        """
+        Suppress torchaudio's future API change warnings about TorchCodec migration.
+
+        These warnings appear when using torchaudio.load/save on PyTorch < 2.9:
+        - "In 2.9, this function's implementation will be changed to use torchaudio.load_with_torchcodec"
+        - "In 2.9, this function's implementation will be changed to use torchaudio.save_with_torchcodec"
+
+        Since we already have a global monkey-patch for PyTorch 2.9+, these warnings are noise.
+        """
+        if "torchaudio_warnings" in cls._patches_applied:
+            return
+
+        try:
+            # Suppress specific torchaudio deprecation warnings
+            warnings.filterwarnings(
+                'ignore',
+                message='.*load_with_torchcodec.*',
+                category=UserWarning
+            )
+            warnings.filterwarnings(
+                'ignore',
+                message='.*save_with_torchcodec.*',
+                category=UserWarning
+            )
+
+            cls._patches_applied.add("torchaudio_warnings")
+
+            if verbose:
+                print("   🔇 Suppressed torchaudio 2.9 migration warnings")
+
+        except Exception as e:
+            warnings.warn(f"torchaudio warning suppression failed: {e}")
+
+    @classmethod
+    def get_applied_patches(cls):
+        """Get list of applied patches"""
+        return list(cls._patches_applied)
+
+    @classmethod
+    def is_patch_applied(cls, patch_name: str) -> bool:
+        """Check if a specific patch has been applied"""
+        return patch_name in cls._patches_applied
+
+
+# Convenience function for easy import
+def apply_pytorch_patches(verbose: bool = True):
+    """Apply all PyTorch compatibility patches"""
+    PyTorchPatches.apply_all_patches(verbose=verbose)

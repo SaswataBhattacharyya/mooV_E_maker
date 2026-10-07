@@ -1,0 +1,15 @@
+{
+  "style_id": "news_report",
+  "name": "News / Reporting",
+  "version": 1,
+  "description": "Attribution-first reporting with chronology and explicit uncertainty.",
+  "stages": {
+    "story": "Separate verified facts, attributed claims, context and unresolved uncertainty; do not speculate.",
+    "scene_direction": "Prioritize chronology, source context, neutral framing and clear location/time transitions.",
+    "image": "Use evidentiary frames and restrained graphics; label reconstructions and illustrative material.",
+    "audio": "Keep narration precise and intelligible; use restrained ambience and never imply certainty through dramatic sound.",
+    "video": "Use motivated, factual motion and preserve source context; avoid misleading edits.",
+    "review": "Check attribution, chronology, uncertainty labels, source provenance and misleading juxtaposition."
+  },
+  "analysis": {"tone": ["neutral", "evidence-led"], "camera_priority": "context", "pacing": "chronological"}
+}

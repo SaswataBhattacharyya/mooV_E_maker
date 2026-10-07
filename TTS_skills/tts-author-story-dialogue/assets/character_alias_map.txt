@@ -1,0 +1,3 @@
+# Alias = audio filename stem, default language
+Narrator = david_attenborough cc3, en
+Alice = female_01, en

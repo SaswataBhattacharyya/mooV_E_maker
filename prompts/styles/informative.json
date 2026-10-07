@@ -1,0 +1,15 @@
+{
+  "style_id": "informative",
+  "name": "Informative / Educational",
+  "version": 1,
+  "description": "Structured explanation with evidence, teaching order and accessible visuals.",
+  "stages": {
+    "story": "Separate known facts, uncertainty and examples; build a clear learning sequence.",
+    "scene_direction": "Use explanatory framing, readable visual hierarchy, demonstrations and explicit transitions.",
+    "image": "Prefer diagrams, labels, clean compositions and visual evidence that directly supports the explanation.",
+    "audio": "Use precise narration, deliberate pauses and restrained music below speech; effects clarify rather than distract.",
+    "video": "Use motion to demonstrate a process or relationship; preserve legibility and teaching order.",
+    "review": "Check factual support, terminology, pacing, accessibility and that visuals match the spoken explanation."
+  },
+  "analysis": {"tone": ["clear", "calm"], "camera_priority": "comprehension", "pacing": "instructional"}
+}

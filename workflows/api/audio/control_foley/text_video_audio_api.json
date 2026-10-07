@@ -1,0 +1,6 @@
+{
+  "1": {"class_type": "LoadControlFoleyModel", "inputs": {"controlfoley_source_dir": "controlfoley", "model_weights_dir": "models/controlfoley", "variant": "large_44k", "device": "auto", "precision": "bf16", "low_vram": false, "compile_encoders": false, "auto_fetch_source": false}},
+  "2": {"class_type": "LoadControlFoleyVideo", "inputs": {"video_path": "control_foley/input.mp4", "duration": 8.0}},
+  "3": {"class_type": "ControlFoleyGenerate", "inputs": {"controlfoley_model": ["1", 0], "video": ["2", 0], "prompt": "sound effect", "negative_prompt": "", "duration": 8.0, "seed": 42, "num_inference_steps": "fixed", "guidance_scale": 4.5, "mask_away_clip": false, "cache_video_features": true, "staged_offload": true, "clip_batch_size_multiplier": "8", "sync_batch_size_multiplier": "8", "reference_audio_path": "", "image_fps": 24.0}},
+  "4": {"class_type": "SaveControlFoleyAudio", "inputs": {"audio": ["3", 0], "filename_prefix": "story_builder/control_foley/output", "format": "wav"}}
+}

@@ -1,0 +1,16 @@
+# Optional isolated active-speaker runtime. This image derives from the
+# analyzer's tested audio image but never mutates it or any host environment.
+FROM video-audio-analyzer-audio:dev
+
+USER root
+RUN python3 -m pip install --no-cache-dir --no-deps \
+    scenedetect==0.6.7.1 \
+    python_speech_features==0.6
+
+COPY vendor/TalkNet-ASD /opt/TalkNet-ASD
+COPY src/video_audio_analyzer/talknet_worker.py /opt/vaa/talknet_worker.py
+ENV PYTHONPATH=/opt/vaa:/app/src:/opt/perception_models
+ENV VIDEO_AUDIO_ANALYZER_TALKNET_REPO=/opt/TalkNet-ASD
+WORKDIR /opt/TalkNet-ASD
+EXPOSE 8032
+ENTRYPOINT ["python3", "-m", "uvicorn", "talknet_worker:app", "--app-dir", "/opt/vaa", "--host", "0.0.0.0", "--port", "8032"]

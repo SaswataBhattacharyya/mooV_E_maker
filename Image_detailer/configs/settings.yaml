@@ -1,0 +1,63 @@
+paths:
+  artifact_dir: artifacts
+  log_dir: logs
+
+pipeline:
+  save_debug_by_default: true
+  dense_caption_first: true
+  enable_ocr: true
+  enable_pose: true
+  enable_face: true
+  enable_segmentation: true
+
+models:
+  ollama_base_url: http://127.0.0.1:11434
+  synthesis_model: qwen2.5vl:7b
+  analysis_model: qwen2.5vl:7b
+  structuring_model: qwen2.5-coder:14b
+  comparison_model: qwen2.5vl:7b
+  ollama_timeout_sec: 300
+  ollama_max_loaded_models: 1
+  ollama_num_parallel: 1
+
+detailed:
+  run_root_dir: artifacts/detailed_runs
+  default_project_name: image_recreation_agent
+  default_aspect_ratio: 3:2
+  enable_generation_by_default: false
+  target_score: 0.80
+  max_full_restarts: 3
+  max_question_rounds: 6
+  prompt_word_limit: 360
+  scene_memory_fact_limit: 6
+  support_signal_word_limit: 120
+  scene_weight: 0.65
+  perceptual_weight: 0.35
+  visual_passes:
+    - composition_camera
+    - objects_positions
+    - foreground_texture
+    - middle_ground_horizon
+    - sky_cloud_structure
+    - color_lighting
+    - negative_constraints
+
+generation:
+  backend: qwen_image_direct
+  width: 1536
+  height: 1024
+  steps: 30
+  cfg: 6.5
+  sampler: dpmpp_2m
+  seed: 123456789
+  model: unsloth/Qwen-Image-2512-GGUF
+  command_template: "bash scripts/run_qwen_image_generation.sh --prompt-file {prompt_file} --negative-prompt-file {negative_prompt_file} --output-image {output_image} --width {width} --height {height} --steps {steps} --cfg {cfg} --sampler {sampler} --seed {seed} --model {model}"
+
+providers:
+  detector: yolo
+  region_captioner: florence2
+  pose: mediapipe
+  face: mediapipe
+  segmentation: mediapipe
+  ocr: tesseract
+  color: kmeans

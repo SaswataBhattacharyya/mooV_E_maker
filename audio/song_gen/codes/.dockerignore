@@ -1,0 +1,32 @@
+# Ignore virtual environment
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore output directories (will be mounted as volumes)
+data/_cache_wav/
+data/_analysis/
+data/_segments/
+data/_demucs/
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore documentation build
+docs/_build/
+
+# Ignore test outputs
+*.log
+.pytest_cache/

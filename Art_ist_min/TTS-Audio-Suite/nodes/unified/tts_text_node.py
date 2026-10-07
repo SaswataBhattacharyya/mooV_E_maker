@@ -1,0 +1,1511 @@
+"""
+Unified TTS Text Node - Engine-agnostic text-to-speech generation for TTS Audio Suite
+Replaces both ChatterBox TTS and F5-TTS nodes with unified architecture
+"""
+
+import torch
+import numpy as np
+import os
+import hashlib
+import gc
+from typing import Dict, Any, Optional, List, Tuple
+
+# Use direct file imports that work when loaded via importlib
+import os
+import sys
+import importlib.util
+
+# Add project root directory to path for imports
+current_dir = os.path.dirname(__file__)
+nodes_dir = os.path.dirname(current_dir)  # nodes/
+project_root = os.path.dirname(nodes_dir)  # project root
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+# Load base_node module directly
+base_node_path = os.path.join(nodes_dir, "base", "base_node.py")
+base_spec = importlib.util.spec_from_file_location("base_node_module", base_node_path)
+base_module = importlib.util.module_from_spec(base_spec)
+sys.modules["base_node_module"] = base_module
+base_spec.loader.exec_module(base_module)
+
+# Import the base class
+BaseTTSNode = base_module.BaseTTSNode
+
+from utils.text.chunking import ImprovedChatterBoxChunker
+from utils.audio.processing import AudioProcessingUtils
+from utils.voice.discovery import get_available_voices, load_voice_reference, get_available_characters, get_character_mapping
+from utils.text.character_parser import parse_character_text, character_parser
+from utils.voice.multilingual_engine import MultilingualEngine
+from utils.config_sanitizer import ConfigSanitizer
+import comfy.model_management as model_management
+import folder_paths
+
+# Global audio cache for unified TTS segments
+GLOBAL_AUDIO_CACHE = {}
+
+# AnyType for flexible input types (accepts any data type)
+class AnyType(str):
+    def __ne__(self, __value: object) -> bool:
+        return False
+
+any_typ = AnyType("*")
+
+
+class UnifiedTTSTextNode(BaseTTSNode):
+    """
+    Unified TTS Text Node - Engine-agnostic text-to-speech generation.
+    Works with any TTS engine (ChatterBox, F5-TTS, future RVC, etc.) through engine adapters.
+    Replaces both ChatterBox TTS and F5-TTS nodes.
+    """
+    
+    @classmethod
+    def NAME(cls):
+        return "🎤 TTS Text"
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        # Get available reference audio files from voice folders
+        reference_files = get_available_voices()
+        
+        return {
+            "required": {
+                "TTS_engine": ("TTS_ENGINE", {
+                    "tooltip": "TTS engine configuration from ChatterBox Engine or F5 TTS Engine nodes"
+                }),
+                "text": ("STRING", {
+                    "multiline": True,
+                    "default": """Hello! This is unified TTS with character switching support.
+[Alice] Hi there! I'm Alice speaking with the selected TTS engine.
+[Bob] And I'm Bob! This works with any TTS engine.
+Back to the main narrator voice for the conclusion.""",
+                    "tooltip": "Text to convert to speech. Use [Character] tags for voice switching. Characters not found in voice folders will use the narrator voice."
+                }),
+                "narrator_voice": (reference_files, {
+                    "default": "none",
+                    "tooltip": "Fallback narrator voice from voice folders. Used when opt_narrator is not connected. Select 'none' if you only use opt_narrator input."
+                }),
+                "seed": ("INT", {
+                    "default": 1, "min": 0, "max": 2**32 - 1,
+                    "tooltip": "Seed for reproducible TTS generation. Same seed with same inputs will produce identical results. Set to 0 for random generation."
+                }),
+            },
+            "optional": {
+                "opt_narrator": (any_typ, {
+                    "tooltip": "Voice reference: Connect Character Voices node output OR direct audio input. Takes priority over narrator_voice dropdown when connected."
+                }),
+                "enable_chunking": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Enable text chunking for long texts. When enabled, long texts are split into smaller chunks for more stable generation."
+                }),
+                "max_chars_per_chunk": ("INT", {
+                    "default": 400, "min": 100, "max": 1000, "step": 50,
+                    "tooltip": "Maximum characters per chunk when chunking is enabled. Smaller chunks = more stable but potentially less coherent speech."
+                }),
+                "chunk_combination_method": (["auto", "concatenate", "silence_padding", "crossfade"], {
+                    "default": "auto",
+                    "tooltip": "Method to combine audio chunks: 'auto' chooses best method, 'concatenate' joins directly, 'silence_padding' adds silence between chunks, 'crossfade' smoothly blends chunks."
+                }),
+                "silence_between_chunks_ms": ("INT", {
+                    "default": 100, "min": 0, "max": 500, "step": 25,
+                    "tooltip": "Silence duration between chunks in milliseconds when using 'silence_padding' combination method. Longer silences = more distinct separation between chunks."
+                }),
+                "enable_audio_cache": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "If enabled, generated audio segments will be cached in memory to speed up subsequent runs with identical parameters."
+                }),
+                "batch_size": ("INT", {
+                    "default": 0, "min": 0, "max": 32, "step": 1,
+                    "tooltip": "Parallel processing workers. 0-1 = sequential (recommended for most cases), 2+ = streaming mode. Note: Streaming may be slower than sequential for small texts. F5-TTS doesn't support streaming yet."
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("AUDIO", "STRING")
+    RETURN_NAMES = ("audio", "generation_info")
+    FUNCTION = "generate_speech"
+    CATEGORY = "TTS Audio Suite/🎤 Text to Speech"
+
+    def __init__(self):
+        super().__init__()
+        self.chunker = ImprovedChatterBoxChunker()
+        self._current_engine = None
+        self._current_adapter = None
+        # Cache engine instances to prevent model reloading
+        self._cached_engine_instances = {}
+
+    def _create_proper_engine_node_instance(self, engine_data: Dict[str, Any]):
+        """
+        Create a proper engine node instance that has all the needed functionality.
+        Uses caching to reuse instances and preserve model state across segments.
+        
+        Args:
+            engine_data: Engine configuration from TTS_engine input
+            
+        Returns:
+            Proper engine node instance with all functionality
+        """
+        try:
+            engine_type = engine_data.get("engine_type")
+            # Extract config from engine_data - it's nested under "config"
+            config = engine_data.get("config", {})
+            
+            # FIX: The engine_data IS the config - no nested structure
+            if not config:  # If config is empty, engine_data itself is the config
+                config = engine_data
+            
+            # Create cache key based on stable parameters that affect engine instance creation
+            # Resolve device to prevent cache misses when switching between "auto" and actual device
+            from utils.device import resolve_torch_device
+            resolved_device = resolve_torch_device(config.get('device', 'auto'))
+
+            # For VibeVoice, include chunk_minutes since it fundamentally changes behavior
+            stable_params = {
+                'engine_type': engine_type,
+                'model': config.get('model'),
+                'device': resolved_device,  # Use resolved device, not "auto"
+                'adapter_class': engine_data.get('adapter_class')
+            }
+            
+            # For VibeVoice, include chunk_minutes in cache key as it overrides all chunking
+            if engine_type == "vibevoice" and 'chunk_minutes' in config:
+                stable_params['chunk_minutes'] = config.get('chunk_minutes', 0)
+            
+            # For VibeVoice, include attention_mode and quantization in cache key since they require model reload
+            if engine_type == "vibevoice":
+                stable_params['attention_mode'] = config.get('attention_mode', 'auto')
+                stable_params['quantize_llm_4bit'] = config.get('quantize_llm_4bit', False)
+
+            # For ChatterBox Official 23-Lang, include model_version in cache key since v1/v2 are different models
+            if engine_type == "chatterbox_official_23lang":
+                stable_params['model_version'] = config.get('model_version', 'v1')
+
+            # For Step Audio EditX, include quantization in cache key since int8/int4 require different models
+            if engine_type == "step_audio_editx":
+                stable_params['quantization'] = config.get('quantization', 'none')
+                stable_params['torch_dtype'] = config.get('torch_dtype', 'bfloat16')
+
+            # For Qwen3-TTS, include voice_preset, instruct, model_size, attn_implementation,
+            # and optimization settings since they determine model type and require model reload
+            if engine_type == "qwen3_tts":
+                stable_params['voice_preset'] = config.get('voice_preset', 'None (Zero-shot / Custom)')
+                stable_params['instruct'] = config.get('instruct', '')
+                stable_params['model_size'] = config.get('model_size', '1.7B')
+                stable_params['attn_implementation'] = config.get('attn_implementation', 'auto')
+                # CRITICAL: Include optimization settings - changing these requires model reload
+                # Without this, enabling torch.compile/cuda_graphs would reuse the non-compiled model
+                stable_params['use_torch_compile'] = config.get('use_torch_compile', False)
+                stable_params['use_cuda_graphs'] = config.get('use_cuda_graphs', False)
+                stable_params['compile_mode'] = config.get('compile_mode', 'default')
+
+            # For IndexTTS-2, include low_vram in cache key since it requires model reload
+            if engine_type == "index_tts":
+                stable_params['low_vram'] = config.get('low_vram', False)
+
+            # For CosyVoice, include actual model identity and load options in cache key.
+            # Both 0.5B variants share the same folder, so using only the resolved path or
+            # generic "model" field is insufficient. Switching base <-> RL must force a
+            # fresh processor/adapter instance or the old variant will keep being reused.
+            if engine_type == "cosyvoice":
+                stable_params['model_path'] = config.get('model_path', 'Fun-CosyVoice3-0.5B-RL')
+                stable_params['use_fp16'] = config.get('use_fp16', True)
+                stable_params['load_trt'] = config.get('load_trt', False)
+                stable_params['load_vllm'] = config.get('load_vllm', False)
+
+            cache_key = f"{engine_type}_{hashlib.md5(str(sorted(stable_params.items())).encode()).hexdigest()[:8]}"
+            
+            # Cache key now properly includes model name for correct differentiation
+            
+            # Check if we have a cached instance with the same stable configuration
+            if cache_key in self._cached_engine_instances:
+                cached_data = self._cached_engine_instances[cache_key]
+                
+                # Handle both old (direct instance) and new (timestamped dict) cache formats
+                if isinstance(cached_data, dict) and 'instance' in cached_data:
+                    # New timestamped format
+                    cached_instance = cached_data['instance']
+                    cache_timestamp = cached_data['timestamp']
+                    
+                    # Check if cache is still valid (not invalidated by model unloading)
+                    from utils.models.comfyui_model_wrapper import is_engine_cache_valid
+                    if is_engine_cache_valid(cache_timestamp):
+                        # CRITICAL FIX: Update the cached instance's config with ALL current parameters
+                        if hasattr(cached_instance, 'update_config'):
+                            cached_instance.update_config(config.copy())  # Propagate to processor
+                        else:
+                            cached_instance.config = config.copy()  # Fallback for other engines
+                        print(f"🔄 Reusing cached {engine_type} engine instance (updated with new generation parameters)")
+                        return cached_instance
+                    else:
+                        # Cache invalidated by model unloading, remove it
+                        print(f"🗑️ Removing invalidated {engine_type} engine cache (models were unloaded)")
+                        del self._cached_engine_instances[cache_key]
+                else:
+                    # Old format (direct instance) - assume invalid and remove
+                    print(f"🗑️ Removing old-format {engine_type} engine cache (upgrading to timestamped format)")
+                    del self._cached_engine_instances[cache_key]
+            
+            # print(f"🔧 Creating new {engine_type} engine instance")
+            
+            if engine_type == "chatterbox":
+                # Import and create the original ChatterBox node using absolute import
+                chatterbox_node_path = os.path.join(nodes_dir, "chatterbox", "chatterbox_tts_node.py")
+                chatterbox_spec = importlib.util.spec_from_file_location("chatterbox_tts_module", chatterbox_node_path)
+                chatterbox_module = importlib.util.module_from_spec(chatterbox_spec)
+                chatterbox_spec.loader.exec_module(chatterbox_module)
+                
+                ChatterboxTTSNode = chatterbox_module.ChatterboxTTSNode
+                engine_instance = ChatterboxTTSNode()
+                # Apply configuration
+                for key, value in config.items():
+                    if hasattr(engine_instance, key):
+                        setattr(engine_instance, key, value)
+                
+                # Cache the instance with timestamp
+                import time
+                self._cached_engine_instances[cache_key] = {
+                    'instance': engine_instance,
+                    'timestamp': time.time()
+                }
+                return engine_instance
+                
+            elif engine_type == "f5tts":
+                # Import and create the original F5-TTS node using absolute import
+                f5tts_node_path = os.path.join(nodes_dir, "f5tts", "f5tts_node.py")
+                f5tts_spec = importlib.util.spec_from_file_location("f5tts_module", f5tts_node_path)
+                f5tts_module = importlib.util.module_from_spec(f5tts_spec)
+                f5tts_spec.loader.exec_module(f5tts_module)
+                
+                F5TTSNode = f5tts_module.F5TTSNode
+                engine_instance = F5TTSNode()
+                # Apply configuration
+                for key, value in config.items():
+                    if hasattr(engine_instance, key):
+                        setattr(engine_instance, key, value)
+                
+                # Cache the instance with timestamp
+                import time
+                self._cached_engine_instances[cache_key] = {
+                    'instance': engine_instance,
+                    'timestamp': time.time()
+                }
+                return engine_instance
+                
+            elif engine_type == "higgs_audio":
+                # Create a wrapper instance for Higgs Audio using the adapter pattern
+                from engines.adapters.higgs_audio_adapter import HiggsAudioEngineAdapter
+                
+                # Create a minimal wrapper node for the adapter
+                class HiggsAudioWrapper:
+                    def __init__(self, config):
+                        self.config = config
+                        # Don't cache adapter - create fresh each time to ensure config updates
+                        # Store current model name for adapter caching
+                        self.current_model_name = None
+                    
+                    def generate_tts_audio(self, text, char_audio, char_text, character="narrator", **params):
+                        # Merge config with runtime params
+                        merged_params = self.config.copy()
+                        merged_params.update(params)
+                        # Create fresh adapter instance with current config to ensure parameter updates
+                        adapter = HiggsAudioEngineAdapter(self)
+                        return adapter.generate_segment_audio(text, char_audio, char_text, character, **merged_params)
+                
+                engine_instance = HiggsAudioWrapper(config)
+                # Cache the instance with timestamp
+                import time
+                self._cached_engine_instances[cache_key] = {
+                    'instance': engine_instance,
+                    'timestamp': time.time()
+                }
+                return engine_instance
+                
+            elif engine_type == "chatterbox_official_23lang":
+                # Import and create the ChatterBox Official 23-Lang node using absolute import
+                chatterbox_official_23lang_node_path = os.path.join(nodes_dir, "chatterbox_official_23lang", "chatterbox_official_23lang_processor.py")
+                chatterbox_official_23lang_spec = importlib.util.spec_from_file_location("chatterbox_official_23lang_processor_module", chatterbox_official_23lang_node_path)
+                chatterbox_official_23lang_module = importlib.util.module_from_spec(chatterbox_official_23lang_spec)
+                chatterbox_official_23lang_spec.loader.exec_module(chatterbox_official_23lang_module)
+                
+                ChatterboxOfficial23LangTTSNode = chatterbox_official_23lang_module.ChatterboxOfficial23LangTTSNode
+                engine_instance = ChatterboxOfficial23LangTTSNode()
+                # Apply configuration
+                for key, value in config.items():
+                    if hasattr(engine_instance, key):
+                        setattr(engine_instance, key, value)
+                
+                # Cache the instance with timestamp
+                import time
+                self._cached_engine_instances[cache_key] = {
+                    'instance': engine_instance,
+                    'timestamp': time.time()
+                }
+                return engine_instance
+                
+            elif engine_type == "vibevoice":
+                # Create a wrapper instance for VibeVoice using the adapter pattern
+                # Import using same pattern as other modules
+                vibevoice_processor_path = os.path.join(nodes_dir, "vibevoice", "vibevoice_processor.py")
+                vibevoice_processor_spec = importlib.util.spec_from_file_location("vibevoice_processor_module", vibevoice_processor_path)
+                vibevoice_processor_module = importlib.util.module_from_spec(vibevoice_processor_spec)
+                vibevoice_processor_spec.loader.exec_module(vibevoice_processor_module)
+                
+                VibeVoiceProcessor = vibevoice_processor_module.VibeVoiceProcessor
+                
+                # Create a minimal wrapper node for the processor
+                class VibeVoiceWrapper:
+                    def __init__(self, config):
+                        self.config = config
+                        self.current_model_name = None
+                        # Create processor instance with config
+                        self.processor = VibeVoiceProcessor(self, config)
+                    
+                    def update_config(self, new_config):
+                        """Update configuration and propagate to processor."""
+                        self.config = new_config
+                        self.processor.update_config(new_config)
+                    
+                    def generate_tts_audio(self, text, char_audio, char_text, character="narrator", **params):
+                        # Parse characters from text first (like F5 does) - suppress language logs for VibeVoice
+                        from utils.text.character_parser import parse_character_text
+                        from utils.voice.discovery import get_character_mapping
+
+                        character_segments = parse_character_text(text, None, engine_type="vibevoice")  # Auto-discover characters
+                        characters = list(set(char for char, _ in character_segments))
+                        print(f"🎭 VibeVoice: Character switching mode - found characters: {', '.join(characters)}")
+                        
+                        # Get character voice mapping (VibeVoice is audio-only, doesn't use reference text)
+                        character_mapping = get_character_mapping(characters, engine_type="audio_only")
+                        
+                        # Build voice references with fallback to main voice (like F5 does)
+                        voice_mapping = {}
+                        for char in characters:
+                            if char == "narrator" and char_audio:
+                                # Use provided narrator voice for narrator character
+                                voice_mapping[char] = char_audio
+                            else:
+                                # Try character-specific voice first, then fallback
+                                audio_path, _ = character_mapping.get(char, (None, None))
+                                if audio_path:
+                                    # Load character-specific audio
+                                    try:
+                                        waveform, sample_rate = AudioProcessingUtils.safe_load_audio(audio_path)
+                                        voice_mapping[char] = {"waveform": waveform, "sample_rate": sample_rate}
+                                        print(f"🎭 VibeVoice: Using character-specific voice for '{char}'")
+                                    except Exception as e:
+                                        print(f"⚠️ Failed to load character audio for '{char}': {e}")
+                                        voice_mapping[char] = char_audio  # Fallback to main voice
+                                        print(f"🔄 VibeVoice: Using main voice fallback for '{char}'")
+                                else:
+                                    # Fallback to main voice
+                                    voice_mapping[char] = char_audio
+                                    print(f"🔄 VibeVoice: Using main voice fallback for '{char}'")
+                        
+                        # print(f"🐛 VIBEVOICE_WRAPPER: generate_tts_audio called with character='{character}'")
+                        # print(f"🐛 VIBEVOICE_WRAPPER: char_audio type: {type(char_audio)}")
+                        # print(f"🐛 VIBEVOICE_WRAPPER: voice_mapping: {list(voice_mapping.keys())}")
+                        
+                        # Get seed from params
+                        seed = params.get('seed', 42)
+                        enable_chunking = params.get('enable_chunking', True)
+                        max_chars = params.get('max_chars_per_chunk', 400)
+                        
+                        # Process text and generate audio
+                        audio_segments = self.processor.process_text(
+                            text, voice_mapping, seed, enable_chunking, max_chars
+                        )
+                        
+                        # Combine segments
+                        if audio_segments:
+                            combined = self.processor.combine_audio_segments(
+                                audio_segments,
+                                params.get('chunk_combination_method', 'auto'),
+                                params.get('silence_between_chunks_ms', 100)
+                            )
+                            
+                            # Format as ComfyUI audio
+                            audio_output = {
+                                "waveform": combined,
+                                "sample_rate": 24000
+                            }
+                            
+                            # Generate info string
+                            generation_info = f"✅ VibeVoice generation complete\n📊 Generated {len(audio_segments)} segment(s)\n🎯 Combined using {params.get('chunk_combination_method', 'auto')} method"
+                            
+                            return (audio_output, generation_info)
+                            
+                        # Return empty audio if no segments
+                        empty_audio = {
+                            "waveform": torch.zeros(1, 1, 0),
+                            "sample_rate": 24000
+                        }
+                        return (empty_audio, "⚠️ No audio generated")
+                
+                engine_instance = VibeVoiceWrapper(config)
+                # Cache the instance with timestamp
+                import time
+                self._cached_engine_instances[cache_key] = {
+                    'instance': engine_instance,
+                    'timestamp': time.time()
+                }
+                return engine_instance
+                
+            elif engine_type == "index_tts":
+                # Create IndexTTS processor instance using the adapter pattern
+                from engines.processors.index_tts_processor import IndexTTSProcessor
+
+                engine_instance = IndexTTSProcessor(config)
+
+                # Cache the instance with timestamp (follow VibeVoice pattern)
+                import time
+                self._cached_engine_instances[cache_key] = {
+                    'instance': engine_instance,
+                    'timestamp': time.time()
+                }
+
+                return engine_instance
+            
+            elif engine_type == "echo_tts":
+                from engines.adapters.echo_tts_adapter import EchoTTSEngineAdapter
+                echo_tts_processor_path = os.path.join(nodes_dir, "echo_tts", "echo_tts_processor.py")
+                echo_tts_processor_spec = importlib.util.spec_from_file_location("echo_tts_processor_module", echo_tts_processor_path)
+                echo_tts_processor_module = importlib.util.module_from_spec(echo_tts_processor_spec)
+                echo_tts_processor_spec.loader.exec_module(echo_tts_processor_module)
+
+                EchoTTSProcessor = echo_tts_processor_module.EchoTTSProcessor
+
+                class EchoTTSWrapper:
+                    def __init__(self, cfg):
+                        self.config = cfg.copy()
+                        self.adapter = EchoTTSEngineAdapter(self.config)
+                        self.processor = EchoTTSProcessor(self.adapter, self.config)
+
+                    def update_config(self, new_config):
+                        self.config = new_config.copy()
+                        self.adapter.update_config(new_config)
+                        self.processor.update_config(new_config)
+
+                engine_instance = EchoTTSWrapper(config)
+
+                # Cache the instance with timestamp
+                import time
+                self._cached_engine_instances[cache_key] = {
+                    'instance': engine_instance,
+                    'timestamp': time.time()
+                }
+
+                return engine_instance
+
+            elif engine_type == "qwen3_tts":
+                # Create Qwen3-TTS processor instance
+                # Use global nodes_dir (already defined at module level)
+                qwen3_processor_path = os.path.join(nodes_dir, "qwen3_tts", "qwen3_tts_processor.py")
+                qwen3_processor_spec = importlib.util.spec_from_file_location("qwen3_tts_processor_module", qwen3_processor_path)
+                qwen3_processor_module = importlib.util.module_from_spec(qwen3_processor_spec)
+                qwen3_processor_spec.loader.exec_module(qwen3_processor_module)
+
+                Qwen3TTSProcessor = qwen3_processor_module.Qwen3TTSProcessor
+                engine_instance = Qwen3TTSProcessor(self, config)
+
+                # Cache the instance with timestamp
+                import time
+                self._cached_engine_instances[cache_key] = {
+                    'instance': engine_instance,
+                    'timestamp': time.time()
+                }
+
+                return engine_instance
+
+            elif engine_type == "step_audio_editx":
+                # Create Step Audio EditX wrapper instance
+                class StepAudioEditXWrapper:
+                    def __init__(self, config):
+                        self.config = config
+
+                engine_instance = StepAudioEditXWrapper(config)
+
+                # Cache the instance with timestamp
+                import time
+                self._cached_engine_instances[cache_key] = {
+                    'instance': engine_instance,
+                    'timestamp': time.time()
+                }
+
+                return engine_instance
+
+            elif engine_type == "cosyvoice":
+                # Create CosyVoice processor instance using the processor pattern
+                from engines.processors.cosyvoice_processor import CosyVoiceProcessor
+                
+                class CosyVoiceWrapper:
+                    def __init__(self, config):
+                        self.config = config
+                        self.processor = None
+
+                    def update_config(self, new_config):
+                        """Update wrapper and processor config."""
+                        self.config.update(new_config)
+                        if self.processor:
+                            self.processor.update_config(new_config)
+
+                    def _ensure_processor(self):
+                        if self.processor is None:
+                            self.processor = CosyVoiceProcessor(self.config)
+                        return self.processor
+                    
+                    def generate_tts_audio(self, text, char_audio, char_text, character="narrator", **params):
+                        processor = self._ensure_processor()
+                        
+                        # Get speaker audio info
+                        speaker_audio = None
+                        if char_audio:
+                            if isinstance(char_audio, dict) and 'waveform' in char_audio:
+                                # Save to temp file for CosyVoice
+                                waveform = char_audio['waveform']
+                                sample_rate = char_audio.get('sample_rate', 22050)
+                                speaker_audio = {'audio_path': AudioProcessingUtils.save_audio_to_temp_file(waveform, sample_rate)}
+                            elif isinstance(char_audio, str):
+                                speaker_audio = {'audio_path': char_audio}
+                        
+                        # Update processor's reference text if char_text provided
+                        if char_text:
+                            processor.engine_config['reference_text'] = char_text
+                            processor.reference_text = char_text  # Also update instance attr
+                        
+                        # Generate using processor (includes pause tag support)
+                        audio, generation_info = processor.process_text(
+                            text=text,
+                            speaker_audio=speaker_audio,
+                            seed=params.get('seed', 0),
+                            enable_chunking=params.get('enable_chunking', True),
+                            max_chars_per_chunk=params.get('max_chars_per_chunk', 400),
+                            silence_between_chunks_ms=params.get('silence_between_chunks_ms', 100),
+                            enable_pause_tags=True,  # Always enable pause tags
+                            return_info=True
+                        )
+                        
+                        # Format as ComfyUI audio
+                        # CosyVoice3 outputs 24000 Hz audio (NOT 22050!)
+                        audio_output = {
+                            "waveform": audio.unsqueeze(0) if audio.dim() == 2 else audio,
+                            "sample_rate": 24000  # CosyVoice3 native sample rate
+                        }
+                        
+                        duration = audio.shape[-1] / 24000.0  # Use correct sample rate
+                        mode = self.config.get('mode', 'zero_shot')
+                        info_str = f"✅ CosyVoice3 generation complete ({mode} mode, {duration:.1f}s)"
+                        if generation_info and generation_info.get('pause_tags_processed'):
+                            info_str += " [pause tags processed]"
+                        if generation_info and generation_info.get('chunks_processed', 0) > 1:
+                            info_str += f" [{generation_info['chunks_processed']} chunks]"
+                        
+                        return (audio_output, info_str)
+                
+                engine_instance = CosyVoiceWrapper(config)
+                
+                # Cache the instance with timestamp
+                import time
+                self._cached_engine_instances[cache_key] = {
+                    'instance': engine_instance,
+                    'timestamp': time.time()
+                }
+                return engine_instance
+
+            else:
+                raise ValueError(f"Unknown engine type: {engine_type}")
+                
+        except Exception as e:
+            print(f"❌ Failed to create engine node instance: {e}")
+            return None
+
+    def _get_voice_reference(self, opt_narrator, narrator_voice: str):
+        """
+        Get voice reference from opt_narrator input or narrator_voice dropdown.
+        
+        Args:
+            opt_narrator: Voice data from Character Voices node OR direct audio input (priority)
+            narrator_voice: Fallback voice from dropdown
+            
+        Returns:
+            Tuple of (audio_path, audio_tensor, reference_text, character_name)
+        """
+        try:
+            # ComfyUI and switch nodes may wrap optional values in a single-item list/tuple.
+            while isinstance(opt_narrator, (list, tuple)) and len(opt_narrator) == 1:
+                opt_narrator = opt_narrator[0]
+
+            # Priority 1: opt_narrator input
+            # Check if opt_narrator is connected AND has valid content
+            valid_opt_narrator = False
+            
+            if opt_narrator is not None:
+                # Check for empty/bypass input (might be a list/tuple from ComfyUI internals)
+                if isinstance(opt_narrator, (list, tuple)) and len(opt_narrator) == 0:
+                    valid_opt_narrator = False
+                # Check for specific dictionary content
+                elif isinstance(opt_narrator, dict) and (
+                    "audio" in opt_narrator or
+                    "waveform" in opt_narrator or
+                    opt_narrator.get("audio_path")
+                ):
+                    valid_opt_narrator = True
+                else:
+                    # Some other non-empty input? Assume valid for now unless it breaks
+                    # If it's just "None" string or empty dict, treat as invalid
+                    if isinstance(opt_narrator, dict) and not opt_narrator:
+                        valid_opt_narrator = False
+                    else:
+                        valid_opt_narrator = True
+
+            if valid_opt_narrator:
+                # Check if it's a Character Voices node output (dict with specific keys)
+                if isinstance(opt_narrator, dict) and "audio" in opt_narrator:
+                    # Character Voices node output
+                    audio = opt_narrator.get("audio")
+                    audio_path = opt_narrator.get("audio_path") 
+                    reference_text = opt_narrator.get("reference_text", "")
+                    character_name = opt_narrator.get("character_name", "narrator")
+                    
+                    print(f"🎤 TTS Text: Using voice reference from Character Voices node ({character_name})")
+                    # print(f"🐛 TTS_TEXT: Character Voices - character_name='{character_name}', has_audio={audio is not None}")
+                    return audio_path, audio, reference_text, character_name
+                
+                # Check if it's a direct audio input (dict with waveform and sample_rate)
+                elif isinstance(opt_narrator, dict) and "waveform" in opt_narrator:
+                    # Direct audio input - no reference text available
+                    audio_tensor = opt_narrator
+                    character_name = "narrator"
+                    reference_text = ""  # No reference text available from direct audio
+
+                    print(f"🎤 TTS Text: Using direct audio input ({character_name})")
+                    print(f"⚠️ TTS Text: Direct audio input has no reference text - F5-TTS will fail, Qwen3-TTS will use x_vector_only mode (lower quality)")
+                    return None, audio_tensor, reference_text, character_name
+            
+            # Priority 2: narrator_voice dropdown (fallback)
+            # This is now reached if opt_narrator is None OR invalid/empty (bypassed)
+            if narrator_voice != "none":
+                # print(f"🐛 TTS_TEXT: Trying narrator_voice dropdown: {narrator_voice}")
+                audio_path, reference_text = load_voice_reference(narrator_voice)
+                # print(f"🐛 TTS_TEXT: Dropdown - audio_path={audio_path}, exists={os.path.exists(audio_path) if audio_path else False}")
+
+                # FALLBACK: If cache-based lookup fails, try constructing path directly
+                if not audio_path:
+                    # narrator_voice is like "voices_examples/Sophie_Anderson CC3.wav"
+                    # Try constructing full path from project root
+                    fallback_path = os.path.join(project_root, narrator_voice)
+                    if os.path.exists(fallback_path):
+                        audio_path = fallback_path
+                        # Also try to load reference text manually
+                        ref_txt_path = os.path.splitext(fallback_path)[0] + ".reference.txt"
+                        if os.path.exists(ref_txt_path):
+                            try:
+                                with open(ref_txt_path, 'r', encoding='utf-8') as f:
+                                    reference_text = f.read().strip()
+                            except:
+                                reference_text = ""
+                        print(f"🔧 TTS Text: Using fallback path resolution for {narrator_voice}")
+
+                if audio_path and os.path.exists(audio_path):
+                    # Load audio tensor with fallback support
+                    waveform, sample_rate = AudioProcessingUtils.safe_load_audio(audio_path)
+                    if waveform.shape[0] > 1:
+                        waveform = torch.mean(waveform, dim=0, keepdim=True)
+                    
+                    audio_tensor = {"waveform": waveform, "sample_rate": sample_rate}
+                    character_name = os.path.splitext(os.path.basename(narrator_voice))[0]
+                    
+                    print(f"🎤 TTS Text: Using voice reference from folder ({character_name})")
+                    # print(f"🐛 TTS_TEXT: Dropdown loaded - character_name='{character_name}', waveform_shape={waveform.shape}")
+                    return audio_path, audio_tensor, reference_text or "", character_name
+            
+            print("⚠️ TTS Text: No voice reference provided - this may cause issues with some engines")
+            # print(f"🐛 TTS_TEXT: Final fallback - opt_narrator={opt_narrator is not None}, narrator_voice='{narrator_voice}'")
+            return None, None, "", "narrator"
+            
+        except Exception as e:
+            print(f"❌ Voice reference error: {e}")
+            return None, None, "", "narrator"
+
+    def generate_speech(self, TTS_engine: Dict[str, Any], text: str, narrator_voice: str, seed: int,
+                       opt_narrator=None, enable_chunking: bool = True, max_chars_per_chunk: int = 400,
+                       chunk_combination_method: str = "auto", silence_between_chunks_ms: int = 100,
+                       enable_audio_cache: bool = True, batch_size: int = 4):
+        """
+        Generate speech using the selected TTS engine.
+        This is a DELEGATION WRAPPER that preserves all original functionality.
+        
+        Args:
+            TTS_engine: Engine configuration from engine nodes
+            text: Text to convert to speech
+            narrator_voice: Fallback narrator voice
+            seed: Random seed
+            opt_narrator: Voice reference from Character Voices node
+            enable_chunking: Enable text chunking
+            max_chars_per_chunk: Maximum characters per chunk
+            chunk_combination_method: Method to combine chunks
+            silence_between_chunks_ms: Silence between chunks
+            enable_audio_cache: Enable audio caching
+            batch_size: Batch size (0-1=sequential, 2+=streaming parallelization)
+            
+        Returns:
+            Tuple of (audio_tensor, generation_info)
+        """
+        try:
+            # Apply Python 3.12 CUDNN compatibility fix before TTS generation
+            from utils.comfyui_compatibility import ensure_python312_cudnn_fix
+            ensure_python312_cudnn_fix()
+
+            # Validate engine input
+            if not TTS_engine or not isinstance(TTS_engine, dict):
+                raise ValueError("Invalid TTS_engine input - connect a TTS engine node")
+
+            engine_type = TTS_engine.get("engine_type")
+            config = TTS_engine.get("config", {})
+
+            # FIX: Sanitize engine config - ComfyUI JSON serialization corrupts numeric types
+            # When workflow JSON is saved/loaded, floats like 10.0 become integers 10
+            # This particularly affects first run after reboot or when using Any Switch
+            config = ConfigSanitizer.sanitize(config)
+            
+            
+            if not engine_type:
+                raise ValueError("TTS engine missing engine_type")
+            
+            # Get voice reference (opt_narrator takes priority)
+            audio_path, audio_tensor, reference_text, character_name = self._get_voice_reference(opt_narrator, narrator_voice)
+            
+            # Get language for consistent logging
+            language = config.get("language", "English")
+            
+            # Determine language code for display
+            if language.startswith("local:"):
+                # For local models, show "local" as the language code
+                lang_code = "local"
+            else:
+                # Standard language codes - take first 2 chars
+                lang_code = language.lower()[:2]  # en, fr, de, etc.
+            
+            char_display = character_name if character_name else "default"
+
+            # For Qwen3-TTS CustomVoice mode, show preset speaker instead of narrator
+            if engine_type == "qwen3_tts":
+                voice_preset = config.get('voice_preset', 'None (Zero-shot / Custom)')
+                if voice_preset != 'None (Zero-shot / Custom)':
+                    print(f"🎤 TTS Text: Using CustomVoice preset speaker (voice reference ignored)")
+                    print(f"🎤 Generating {engine_type.title()} with voice preset '{voice_preset}' (lang: {lang_code})")
+                else:
+                    print(f"🎤 Generating {engine_type.title()} for '{char_display}' (lang: {lang_code})")
+            else:
+                print(f"🎤 Generating {engine_type.title()} for '{char_display}' (lang: {lang_code})")
+            
+            # Validate F5-TTS requirements: must have reference text
+            if engine_type == "f5tts" and not reference_text.strip():
+                raise ValueError(
+                    "F5-TTS requires reference text. When using direct audio input, "
+                    "please use Character Voices node instead, which provides both audio and text."
+                )
+            
+            # Create proper engine node instance to preserve ALL functionality
+            engine_instance = self._create_proper_engine_node_instance(TTS_engine)
+            if not engine_instance:
+                raise RuntimeError("Failed to create engine node instance")
+            
+            # IMPORTANT: Add crash protection template to config if missing (for ChatterBox)
+            if engine_type == "chatterbox" and "crash_protection_template" not in config:
+                config["crash_protection_template"] = "hmm ,, {seg} hmm ,,"
+            
+            # ChatterBox will automatically determine streaming vs sequential based on batch_size
+            
+            # Prepare parameters for the original node's generate_speech method
+            if engine_type == "chatterbox":
+                # ChatterBox TTS parameters - batch_size controls everything
+                result = engine_instance.generate_speech(
+                    text=text,
+                    language=language,
+                    device=config.get("device", "auto"),
+                    exaggeration=config.get("exaggeration", 0.5),
+                    temperature=config.get("temperature", 0.8),
+                    cfg_weight=config.get("cfg_weight", 0.5),
+                    seed=seed,
+                    reference_audio=audio_tensor,
+                    audio_prompt_path=audio_path or "",
+                    enable_chunking=enable_chunking,
+                    max_chars_per_chunk=max_chars_per_chunk,
+                    chunk_combination_method=chunk_combination_method,
+                    silence_between_chunks_ms=silence_between_chunks_ms,
+                    crash_protection_template=config.get("crash_protection_template", "hmm ,, {seg} hmm ,,"),
+                    enable_audio_cache=enable_audio_cache,
+                    batch_size=batch_size
+                )
+                
+            elif engine_type == "chatterbox_official_23lang":
+                # ChatterBox Official 23-Lang TTS parameters - includes multilingual parameters
+                result = engine_instance.generate_speech(
+                    text=text,
+                    language=language,
+                    device=config.get("device", "auto"),
+                    model_version=config.get("model_version", "v2"),
+                    exaggeration=config.get("exaggeration", 0.5),
+                    temperature=config.get("temperature", 0.8),
+                    cfg_weight=config.get("cfg_weight", 0.5),
+                    repetition_penalty=config.get("repetition_penalty", 2.0),
+                    min_p=config.get("min_p", 0.05),
+                    top_p=config.get("top_p", 1.0),
+                    seed=seed,
+                    reference_audio=audio_tensor,
+                    audio_prompt_path=audio_path or "",
+                    enable_chunking=enable_chunking,
+                    max_chars_per_chunk=max_chars_per_chunk,
+                    chunk_combination_method=chunk_combination_method,
+                    silence_between_chunks_ms=silence_between_chunks_ms,
+                    enable_audio_cache=enable_audio_cache,
+                    batch_size=batch_size
+                )
+                
+            elif engine_type == "f5tts":
+                # F5-TTS streaming warning and fallback
+                if batch_size > 1:
+                    print(f"⚠️ F5-TTS doesn't support streaming mode yet. Falling back to sequential processing (batch_size=0)")
+                    batch_size = 0
+                
+                # F5-TTS parameters
+                # For F5-TTS we need to handle reference_audio_file vs opt_reference_audio differently
+                if opt_narrator:
+                    # Use direct reference audio from Character Voices
+                    opt_reference_audio = audio_tensor
+                    reference_audio_file = "none"
+                    opt_reference_text = reference_text
+                else:
+                    # Use narrator_voice dropdown
+                    opt_reference_audio = None
+                    reference_audio_file = narrator_voice
+                    opt_reference_text = reference_text
+                
+                result = engine_instance.generate_speech(
+                    reference_audio_file=reference_audio_file,
+                    opt_reference_text=opt_reference_text,
+                    device=config.get("device", "auto"),
+                    model=config.get("model", "F5TTS_Base"),
+                    seed=seed,
+                    text=text,
+                    opt_reference_audio=opt_reference_audio,
+                    temperature=config.get("temperature", 0.8),
+                    speed=config.get("speed", 1.0),
+                    target_rms=config.get("target_rms", 0.1),
+                    cross_fade_duration=config.get("cross_fade_duration", 0.15),
+                    nfe_step=config.get("nfe_step", 32),
+                    cfg_strength=config.get("cfg_strength", 2.0),
+                    auto_phonemization=config.get("auto_phonemization", True),
+                    enable_chunking=enable_chunking,
+                    max_chars_per_chunk=max_chars_per_chunk,
+                    chunk_combination_method=chunk_combination_method,
+                    silence_between_chunks_ms=silence_between_chunks_ms,
+                    enable_audio_cache=enable_audio_cache
+                )
+                
+                
+            elif engine_type == "higgs_audio":
+                # Import and create the Higgs Audio TTS processor
+                higgs_tts_processor_path = os.path.join(nodes_dir, "higgs_audio", "higgs_audio_tts_processor.py")
+                higgs_tts_spec = importlib.util.spec_from_file_location("higgs_audio_tts_processor_module", higgs_tts_processor_path)
+                higgs_tts_module = importlib.util.module_from_spec(higgs_tts_spec)
+                higgs_tts_spec.loader.exec_module(higgs_tts_module)
+
+                HiggsAudioTTSProcessor = higgs_tts_module.HiggsAudioTTSProcessor
+                tts_processor = HiggsAudioTTSProcessor(engine_instance)
+
+                # Clean delegation to TTS processor
+                result = tts_processor.generate_tts_speech(
+                    text=text,
+                    multi_speaker_mode=engine_instance.config.get("multi_speaker_mode", "Custom Character Switching"),
+                    audio_tensor=audio_tensor,
+                    reference_text=reference_text,
+                    seed=seed,
+                    enable_audio_cache=enable_audio_cache,
+                    max_chars_per_chunk=max_chars_per_chunk,
+                    silence_between_chunks_ms=silence_between_chunks_ms
+                )
+
+            elif engine_type == "step_audio_editx":
+                # Import and create the Step Audio EditX TTS processor
+                step_audio_processor_path = os.path.join(nodes_dir, "step_audio_editx", "step_audio_editx_processor.py")
+                step_audio_spec = importlib.util.spec_from_file_location("step_audio_editx_processor_module", step_audio_processor_path)
+                step_audio_module = importlib.util.module_from_spec(step_audio_spec)
+                step_audio_spec.loader.exec_module(step_audio_module)
+
+                StepAudioEditXProcessor = step_audio_module.StepAudioEditXProcessor
+
+                # Create wrapper instance
+                class StepAudioEditXWrapper:
+                    def __init__(self):
+                        self.config = config
+
+                wrapper_instance = StepAudioEditXWrapper()
+                tts_processor = StepAudioEditXProcessor(wrapper_instance, config)
+
+                # Prepare voice mapping - discover all characters in text
+                from utils.text.character_parser import character_parser
+                from utils.voice.discovery import get_character_mapping
+                import tempfile
+
+                # Parse characters from text - first extract character names from tags
+                import re
+                # Simple regex to extract character names from [Character] tags
+                character_tags = re.findall(r'\[([^\]]+)\]', text)
+                # Filter out pause tags and get unique characters
+                characters_from_tags = []
+                for tag in character_tags:
+                    if not tag.startswith('pause:'):
+                        # Extract character name (before | for parameters)
+                        character_name = tag.split('|')[0].strip()
+                        characters_from_tags.append(character_name)
+
+                # Add "narrator" as default character
+                all_characters = list(set(characters_from_tags + ["narrator"]))
+
+                # Set available characters so parser doesn't change them to "narrator"
+                # Also get character aliases and language defaults like IndexTTS does
+                from utils.voice.discovery import get_available_characters, voice_discovery
+
+                # Get available characters and aliases
+                available_chars = get_available_characters()
+                character_aliases = voice_discovery.get_character_aliases()
+
+                # Build complete available set
+                all_available = set()
+                if available_chars:
+                    all_available.update(available_chars)
+                for alias, target in character_aliases.items():
+                    all_available.add(alias.lower())
+                    all_available.add(target.lower())
+
+                # Add characters from text (lowercase for matching)
+                for char in characters_from_tags:
+                    all_available.add(char.lower())
+
+                # Add "narrator"
+                all_available.add("narrator")
+
+                character_parser.set_available_characters(list(all_available))
+
+                # Set language defaults
+                char_lang_defaults = voice_discovery.get_character_language_defaults()
+                for char, lang in char_lang_defaults.items():
+                    character_parser.set_character_language_default(char, lang)
+
+                character_parser.reset_session_cache()
+
+                # Now parse segments - characters will be preserved
+                segment_objects = character_parser.parse_text_segments(text)
+                characters = list(set([seg.character for seg in segment_objects]))
+
+                # Get character voice mapping
+                character_mapping = get_character_mapping(characters, engine_type="step_audio_editx")
+
+                # Build voice mapping with Step Audio EditX format
+                voice_mapping = {}
+                for character in characters:
+                    # Special handling for narrator - use provided voice reference
+                    if character == "narrator" and audio_tensor is not None and reference_text:
+                        # Extract waveform from ComfyUI audio dict format
+                        waveform = audio_tensor['waveform'] if isinstance(audio_tensor, dict) else audio_tensor
+                        sr = audio_tensor.get('sample_rate', 24000) if isinstance(audio_tensor, dict) else 24000
+
+                        # CRITICAL: Step Audio EditX requires 24000 Hz audio
+                        # Resample if needed to prevent pitch shift
+                        target_sr = 24000  # CosyVoice native sample rate
+                        if sr != target_sr:
+                            print(f"🎨 Step Audio EditX: Resampling narrator audio from {sr}Hz to {target_sr}Hz")
+                            import torchaudio
+                            resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=target_sr)
+                            waveform = resampler(waveform)
+                            sr = target_sr
+
+                        # Save audio tensor to temporary file for Step Audio EditX
+                        temp_file_path = AudioProcessingUtils.save_audio_to_temp_file(waveform, sr)
+                        voice_mapping[character] = {
+                            'prompt_audio_path': temp_file_path,
+                            'prompt_text': reference_text
+                        }
+                    else:
+                        # Use character-specific voice from voices/ folder with fallback to narrator
+                        audio_path, ref_text = character_mapping.get(character, (None, None))
+                        if audio_path and ref_text:
+                            voice_mapping[character] = {
+                                'prompt_audio_path': audio_path,
+                                'prompt_text': ref_text
+                            }
+                            print(f"🎭 Step Audio EditX: Using character-specific voice for '{character}'")
+                        else:
+                            # Fallback to narrator voice for characters without voice files
+                            if audio_tensor is not None and reference_text:
+                                # Extract waveform from ComfyUI audio dict format
+                                waveform = audio_tensor['waveform'] if isinstance(audio_tensor, dict) else audio_tensor
+                                sr = audio_tensor.get('sample_rate', 24000) if isinstance(audio_tensor, dict) else 24000
+
+                                # CRITICAL: Step Audio EditX requires 24000 Hz audio
+                                # Resample if needed to prevent pitch shift
+                                target_sr = 24000  # CosyVoice native sample rate
+                                if sr != target_sr:
+                                    print(f"🎨 Step Audio EditX: Resampling fallback audio for '{character}' from {sr}Hz to {target_sr}Hz")
+                                    import torchaudio
+                                    resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=target_sr)
+                                    waveform = resampler(waveform)
+                                    sr = target_sr
+
+                                # Save audio tensor to temporary file for Step Audio EditX
+                                temp_file_path = AudioProcessingUtils.save_audio_to_temp_file(waveform, sr)
+                                voice_mapping[character] = {
+                                    'prompt_audio_path': temp_file_path,
+                                    'prompt_text': reference_text
+                                }
+                                print(f"🔄 Step Audio EditX: Using narrator voice fallback for '{character}'")
+                            else:
+                                # No narrator voice available - add empty entry (will cause error in adapter)
+                                voice_mapping[character] = None
+                                print(f"⚠️ Step Audio EditX: No voice available for '{character}' and no narrator fallback")
+
+                # Process text with character switching
+                audio_segments = tts_processor.process_text(
+                    text=text,
+                    voice_mapping=voice_mapping,
+                    seed=seed,
+                    enable_chunking=(max_chars_per_chunk > 0),
+                    max_chars_per_chunk=max_chars_per_chunk if max_chars_per_chunk > 0 else 400
+                )
+
+                # Calculate clean text length (without tags)
+                import re
+                clean_text = re.sub(r'\[.*?\]', '', text)
+                text_length = len(clean_text)
+
+                # Combine audio segments with timing info
+                combined_audio, chunk_info = tts_processor.combine_audio_segments(
+                    audio_segments,
+                    method=chunk_combination_method,
+                    silence_ms=silence_between_chunks_ms,
+                    text_length=text_length,
+                    return_info=True
+                )
+
+                # Ensure correct shape [batch, channels, samples] for ComfyUI
+                if combined_audio.dim() == 1:
+                    combined_audio = combined_audio.unsqueeze(0).unsqueeze(0)  # [samples] -> [1, 1, samples]
+                elif combined_audio.dim() == 2:
+                    combined_audio = combined_audio.unsqueeze(0)  # [channels, samples] -> [1, channels, samples]
+
+                # Calculate audio duration
+                total_duration = combined_audio.shape[-1] / 24000.0
+                num_segments = len(audio_segments)
+
+                # Build detailed generation info
+                base_info = f"Generated {total_duration:.1f}s audio from {text_length} characters"
+                if num_segments > 1:
+                    avg_chars = text_length / num_segments
+                    base_info += f" using {num_segments} segments (avg {avg_chars:.0f} chars/segment)"
+                base_info += f" (Step Audio EditX, narrator: {char_display})"
+
+                # Enhance with chunk timing details
+                from utils.audio.chunk_timing import ChunkTimingHelper
+                generation_info = ChunkTimingHelper.enhance_generation_info(f"✅ {base_info}", chunk_info)
+
+                # Format as ComfyUI audio
+                audio_output = {
+                    "waveform": combined_audio,
+                    "sample_rate": 24000
+                }
+                result = (audio_output, generation_info)
+
+            elif engine_type == "vibevoice":
+                # VibeVoice uses the wrapper pattern - call directly through the wrapper's method
+                result = engine_instance.generate_tts_audio(
+                    text=text,
+                    char_audio=audio_tensor,
+                    char_text=reference_text,
+                    character=char_display,
+                    seed=seed,
+                    enable_audio_cache=enable_audio_cache,
+                    enable_chunking=enable_chunking,
+                    max_chars_per_chunk=max_chars_per_chunk,
+                    chunk_combination_method=chunk_combination_method,
+                    silence_between_chunks_ms=silence_between_chunks_ms
+                )
+                
+            elif engine_type == "index_tts":
+                # IndexTTS-2 uses processor pattern - call through processor with emotion support
+                audio_result, chunk_info = engine_instance.process_text(
+                    text=text,
+                    speaker_audio=audio_tensor,
+                    reference_text=reference_text,
+                    seed=seed,
+                    enable_chunking=enable_chunking,
+                    max_chars_per_chunk=max_chars_per_chunk,
+                    silence_between_chunks_ms=silence_between_chunks_ms,
+                    return_info=True
+                )
+
+                # Calculate statistics
+                total_duration = audio_result.shape[-1] / 22050.0  # IndexTTS-2 uses 22050 Hz
+                import re
+                clean_text = re.sub(r'\[.*?\]', '', text)
+                text_length = len(clean_text)
+
+                # Build detailed generation info
+                base_info = f"Generated {total_duration:.1f}s audio from {text_length} characters (IndexTTS-2, narrator: {char_display})"
+                base_info += "\n🎭 Character switching and emotion support enabled"
+
+                # Enhance with chunk timing details
+                from utils.audio.chunk_timing import ChunkTimingHelper
+                generation_info = ChunkTimingHelper.enhance_generation_info(f"✅ {base_info}", chunk_info)
+
+                # Format as ComfyUI audio format (processor returns tensor, we need dict)
+                formatted_audio = AudioProcessingUtils.format_for_comfyui(audio_result, 22050)
+                result = (formatted_audio, generation_info)
+                
+            elif engine_type == "echo_tts":
+                # Echo-TTS uses processor pattern - orchestration lives in EchoTTSProcessor
+                import re
+                from utils.audio.chunk_timing import ChunkTimingHelper
+
+                # Backward compatibility for older cached wrappers created before processor refactor.
+                if not hasattr(engine_instance, "processor"):
+                    echo_tts_processor_path = os.path.join(nodes_dir, "echo_tts", "echo_tts_processor.py")
+                    echo_tts_processor_spec = importlib.util.spec_from_file_location("echo_tts_processor_module", echo_tts_processor_path)
+                    echo_tts_processor_module = importlib.util.module_from_spec(echo_tts_processor_spec)
+                    echo_tts_processor_spec.loader.exec_module(echo_tts_processor_module)
+                    EchoTTSProcessor = echo_tts_processor_module.EchoTTSProcessor
+                    engine_instance.processor = EchoTTSProcessor(engine_instance.adapter, config)
+                    engine_instance.processor.update_config(config)
+
+                voice_mapping = {'narrator': {'audio': audio_tensor, 'reference_text': reference_text or ''}}
+                segment_records = engine_instance.processor.process_text(
+                    text=text,
+                    voice_mapping=voice_mapping,
+                    seed=seed,
+                    enable_chunking=enable_chunking,
+                    max_chars_per_chunk=max_chars_per_chunk,
+                    chunk_combination_method=chunk_combination_method,
+                    silence_between_chunks_ms=silence_between_chunks_ms,
+                    enable_audio_cache=enable_audio_cache
+                )
+
+                combined_audio, chunk_info = engine_instance.processor.combine_audio_segments(
+                    segments=segment_records,
+                    method=chunk_combination_method,
+                    silence_ms=silence_between_chunks_ms,
+                    original_text=text,
+                    return_info=True
+                )
+
+                total_duration = combined_audio.shape[-1] / 44100.0 if combined_audio.numel() else 0.0
+                parsed_text = re.sub(r'\[s1\]\s*', '', text, flags=re.IGNORECASE)
+                clean_text = re.sub(r'\[.*?\]', '', parsed_text)
+                text_length = len(clean_text)
+
+                base_info = f"Generated {total_duration:.1f}s audio from {text_length} characters (Echo-TTS, narrator: {char_display})"
+                base_info += "\n🎭 Character switching and pause tags enabled"
+                generation_info = ChunkTimingHelper.enhance_generation_info(f"✅ {base_info}", chunk_info)
+
+                formatted_audio = AudioProcessingUtils.format_for_comfyui(combined_audio, 44100)
+                result = (formatted_audio, generation_info)
+                
+            elif engine_type == "qwen3_tts":
+                # Qwen3-TTS uses processor pattern - call through processor
+                # Extract characters from text first
+                import re
+                character_tags = re.findall(r'\[([^\]]+)\]', text)
+                characters_from_tags = []
+                for tag in character_tags:
+                    if not tag.startswith('pause:'):
+                        character_name = tag.split('|')[0].strip().lower()
+                        characters_from_tags.append(character_name)
+
+                # Parse segments to get actual characters used
+                from utils.text.character_parser import character_parser
+                from utils.voice.discovery import voice_discovery, get_available_characters
+
+                # Get available characters
+                available_chars = get_available_characters()
+                character_aliases = voice_discovery.get_character_aliases()
+
+                # Build complete available set
+                all_available = set()
+                if available_chars:
+                    all_available.update(available_chars)
+                for alias, target in character_aliases.items():
+                    all_available.add(alias.lower())
+                    all_available.add(target.lower())
+
+                # Add characters from text
+                for char in characters_from_tags:
+                    all_available.add(char.lower())
+
+                # Add "narrator"
+                all_available.add("narrator")
+
+                character_parser.set_available_characters(list(all_available))
+
+                # Set language defaults
+                char_lang_defaults = voice_discovery.get_character_language_defaults()
+                for char, lang in char_lang_defaults.items():
+                    character_parser.set_character_language_default(char, lang)
+
+                character_parser.reset_session_cache()
+
+                # Parse segments to get actual characters
+                segment_objects = character_parser.parse_text_segments(text)
+                characters = list(set([seg.character for seg in segment_objects]))
+
+                # Get character voice mapping
+                from utils.voice.discovery import get_character_mapping
+                character_mapping = get_character_mapping(characters, engine_type="qwen3_tts")
+
+                # Build voice mapping for character switching
+                # Note: Qwen3-TTS requires ref_text in ICL mode, so include it in the voice dict
+                voice_mapping = {}
+                for character in characters:
+                    # Special handling for narrator - use provided voice reference
+                    if character == "narrator" and audio_tensor is not None:
+                        # Build voice reference dict with proper structure for adapter
+                        # Adapter looks for: prompt_audio_path, audio_path, audio, waveform (in that order)
+                        # Use 'audio' key if audio_tensor is already a ComfyUI audio dict, otherwise use 'waveform'
+                        if isinstance(audio_tensor, dict) and "waveform" in audio_tensor:
+                            # ComfyUI audio dict format - pass as 'audio' key
+                            voice_ref_dict = {
+                                "audio": audio_tensor,  # Full audio dict for adapter
+                                "text": reference_text or ""  # Reference transcript
+                            }
+                            # Only force x_vector_only_mode when we DON'T have ref text
+                            # When we have ref text, let engine widget setting decide
+                            if not reference_text:
+                                voice_ref_dict["x_vector_only_mode"] = True
+                            voice_mapping[character] = voice_ref_dict
+                        else:
+                            # Raw tensor - pass as 'waveform' key
+                            voice_ref_dict = {
+                                "waveform": audio_tensor,
+                                "sample_rate": 24000,  # Default sample rate
+                                "text": reference_text or ""
+                            }
+                            if not reference_text:
+                                voice_ref_dict["x_vector_only_mode"] = True
+                            voice_mapping[character] = voice_ref_dict
+                    else:
+                        # Use character-specific voice from voices/ folder with fallback to narrator
+                        audio_path, ref_text = character_mapping.get(character, (None, None))
+
+                        # Case 1: Have both audio and text (ICL mode - best quality)
+                        if audio_path and ref_text:
+                            try:
+                                waveform, sample_rate = AudioProcessingUtils.safe_load_audio(audio_path)
+
+                                # Resample to 24kHz if needed
+                                if sample_rate != 24000:
+                                    import torchaudio
+                                    resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=24000)
+                                    waveform = resampler(waveform)
+                                    sample_rate = 24000
+
+                                voice_mapping[character] = {
+                                    "waveform": waveform,
+                                    "sample_rate": sample_rate,
+                                    "text": ref_text,
+                                    "x_vector_only_mode": False  # ICL mode for best quality
+                                }
+                                print(f"🎭 Qwen3-TTS: Using character-specific voice for '{character}' (ICL mode)")
+                            except Exception as e:
+                                print(f"⚠️ Failed to load character audio for '{character}': {e}")
+                                # Fallback to narrator voice if available
+                                if audio_tensor is not None and reference_text:
+                                    # Extract tensor from audio dict if needed
+                                    actual_waveform = audio_tensor["waveform"] if isinstance(audio_tensor, dict) and "waveform" in audio_tensor else audio_tensor
+                                    actual_sample_rate = audio_tensor["sample_rate"] if isinstance(audio_tensor, dict) and "sample_rate" in audio_tensor else 24000
+
+                                    voice_mapping[character] = {
+                                        "waveform": actual_waveform,
+                                        "sample_rate": actual_sample_rate,
+                                        "text": reference_text or "",
+                                        "x_vector_only_mode": False
+                                    }
+                                    print(f"🔄 Qwen3-TTS: Using narrator voice fallback for '{character}'")
+                                else:
+                                    voice_mapping[character] = None
+                                    print(f"⚠️ Qwen3-TTS: No voice available for '{character}' and no narrator fallback")
+
+                        # Case 2: Have audio but no text (x_vector_only mode - lower quality)
+                        elif audio_path and not ref_text:
+                            try:
+                                waveform, sample_rate = AudioProcessingUtils.safe_load_audio(audio_path)
+
+                                # Resample to 24kHz if needed
+                                if sample_rate != 24000:
+                                    import torchaudio
+                                    resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=24000)
+                                    waveform = resampler(waveform)
+                                    sample_rate = 24000
+
+                                # Extract tensor from audio dict if needed
+                                actual_waveform = waveform["waveform"] if isinstance(waveform, dict) and "waveform" in waveform else waveform
+                                actual_sample_rate = waveform["sample_rate"] if isinstance(waveform, dict) and "sample_rate" in waveform else sample_rate
+
+                                voice_mapping[character] = {
+                                    "waveform": actual_waveform,
+                                    "sample_rate": actual_sample_rate,
+                                    "text": "",  # Empty text for x_vector_only mode
+                                    "x_vector_only_mode": True  # Use speaker embedding only
+                                }
+                                print(f"⚠️⚠️ Qwen3-TTS: Character '{character}' has audio but NO reference text")
+                                print(f"⚠️⚠️ Using x_vector_only mode (speaker embedding only) - LOWER QUALITY than ICL mode")
+                            except Exception as e:
+                                print(f"⚠️ Failed to load character audio for '{character}': {e}")
+                                # Fallback to narrator voice if available
+                                if audio_tensor is not None:
+                                    # Extract tensor from audio dict if needed
+                                    actual_waveform = audio_tensor["waveform"] if isinstance(audio_tensor, dict) and "waveform" in audio_tensor else audio_tensor
+                                    actual_sample_rate = audio_tensor["sample_rate"] if isinstance(audio_tensor, dict) and "sample_rate" in audio_tensor else 24000
+
+                                    voice_mapping[character] = {
+                                        "waveform": actual_waveform,
+                                        "sample_rate": actual_sample_rate,
+                                        "text": reference_text or "",
+                                        "x_vector_only_mode": False if reference_text else True
+                                    }
+                                    if reference_text:
+                                        print(f"🔄 Qwen3-TTS: Using narrator voice fallback for '{character}'")
+                                    else:
+                                        print(f"⚠️⚠️ Qwen3-TTS: Using narrator voice fallback for '{character}' (x_vector_only mode)")
+                                else:
+                                    voice_mapping[character] = None
+                                    print(f"⚠️ Qwen3-TTS: No voice available for '{character}' and no narrator fallback")
+
+                        # Case 3: No audio file at all - fallback to narrator
+                        else:
+                            # Fallback to narrator voice for characters without voice files
+                            if audio_tensor is not None:
+                                # Build voice reference dict with proper structure for adapter
+                                if isinstance(audio_tensor, dict) and "waveform" in audio_tensor:
+                                    # ComfyUI audio dict format - pass as 'audio' key
+                                    voice_ref_dict = {
+                                        "audio": audio_tensor,
+                                        "text": reference_text or ""
+                                    }
+                                    if not reference_text:
+                                        voice_ref_dict["x_vector_only_mode"] = True
+                                    voice_mapping[character] = voice_ref_dict
+                                else:
+                                    # Raw tensor - pass as 'waveform' key
+                                    voice_ref_dict = {
+                                        "waveform": audio_tensor,
+                                        "sample_rate": 24000,
+                                        "text": reference_text or ""
+                                    }
+                                    if not reference_text:
+                                        voice_ref_dict["x_vector_only_mode"] = True
+                                    voice_mapping[character] = voice_ref_dict
+
+                                if reference_text:
+                                    print(f"🔄 Qwen3-TTS: Using narrator voice fallback for '{character}' (engine widget controls mode)")
+                                else:
+                                    print(f"🔄 Qwen3-TTS: Using narrator voice fallback for '{character}' (x_vector_only mode - no ref text)")
+                            else:
+                                # No narrator voice available
+                                voice_mapping[character] = None
+                                print(f"⚠️ Qwen3-TTS: No voice available for '{character}' and no narrator fallback")
+
+                audio_segments = engine_instance.process_text(
+                    text=text,
+                    voice_mapping=voice_mapping,
+                    seed=seed,
+                    enable_chunking=enable_chunking,
+                    max_chars_per_chunk=max_chars_per_chunk
+                )
+
+                # Combine audio segments
+                audio_result, chunk_info = engine_instance.combine_audio_segments(
+                    segments=audio_segments,
+                    method="auto",
+                    silence_ms=silence_between_chunks_ms,
+                    text_length=len(text),
+                    return_info=True
+                )
+
+                # Calculate statistics
+                total_duration = audio_result.shape[-1] / 24000.0  # Qwen3-TTS uses 24kHz
+                import re
+                clean_text = re.sub(r'\[.*?\]', '', text)
+                text_length = len(clean_text)
+
+                # Build detailed generation info
+                base_info = f"Generated {total_duration:.1f}s audio from {text_length} characters (Qwen3-TTS, narrator: {char_display})"
+                base_info += "\n🎭 Character switching and intelligent model selection enabled"
+
+                # Enhance with chunk timing details
+                from utils.audio.chunk_timing import ChunkTimingHelper
+                generation_info = ChunkTimingHelper.enhance_generation_info(f"✅ {base_info}", chunk_info)
+
+                # Format as ComfyUI audio format (processor returns tensor, we need dict)
+                formatted_audio = AudioProcessingUtils.format_for_comfyui(audio_result, 24000)
+                result = (formatted_audio, generation_info)
+
+            elif engine_type == "cosyvoice":
+                # CosyVoice3 uses wrapper pattern - call directly through wrapper
+                result = engine_instance.generate_tts_audio(
+                    text=text,
+                    char_audio=audio_tensor,
+                    char_text=reference_text,
+                    character=char_display,
+                    seed=seed
+                )
+
+            else:
+                raise ValueError(f"Unknown engine type: {engine_type}")
+            
+            # The original nodes return (audio, generation_info)
+            audio_output, generation_info = result
+            
+            # Timing info is already included in generation_info from engines
+            enhanced_info = generation_info
+            
+            # Add unified prefix to generation info
+            unified_info = f"🎤 TTS Text (Unified) - {engine_type.upper()} Engine:\n{enhanced_info}"
+
+            # Build completion message based on engine type and voice source
+            if engine_type == "qwen3_tts":
+                voice_preset = config.get('voice_preset', 'None (Zero-shot / Custom)')
+                if voice_preset != 'None (Zero-shot / Custom)':
+                    # Using CustomVoice preset speaker
+                    print(f"✅ {engine_type.title()} generation complete. Voice preset: {voice_preset}")
+                else:
+                    # Using Base model with narrator voice
+                    print(f"✅ {engine_type.title()} generation complete. Default narrator: {char_display}")
+            else:
+                # Other engines always use narrator voice
+                print(f"✅ {engine_type.title()} generation complete. Default narrator: {char_display}")
+
+            return (audio_output, unified_info)
+                
+        except Exception as e:
+            # Bubble up pause tag + speaker KV incompatibility to trigger ComfyUI modal
+            if "Pause tags are not compatible with force_speaker_kv" in str(e):
+                raise
+            error_msg = f"❌ TTS Text generation failed: {e}"
+            print(error_msg)
+            import traceback
+            traceback.print_exc()
+            
+            # Return empty audio and error info
+            empty_audio = AudioProcessingUtils.create_silence(1.0, 24000)
+            empty_comfy = AudioProcessingUtils.format_for_comfyui(empty_audio, 24000)
+            
+            return (empty_comfy, error_msg)
+
+
+
+# Register the node class
+NODE_CLASS_MAPPINGS = {
+    "UnifiedTTSTextNode": UnifiedTTSTextNode
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "UnifiedTTSTextNode": "🎤 TTS Text"
+}

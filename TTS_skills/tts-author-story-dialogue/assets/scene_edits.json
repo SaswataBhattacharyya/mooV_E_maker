@@ -1,0 +1,10 @@
+[
+  {
+    "start": 3.5,
+    "end": 6.5,
+    "text": "This line will use Alice's mapped voice.",
+    "edit_type": "emotion",
+    "emotion": "happy",
+    "n_edit_iterations": 1
+  }
+]

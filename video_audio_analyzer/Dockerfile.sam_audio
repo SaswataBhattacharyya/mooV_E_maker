@@ -1,0 +1,26 @@
+# SAM Audio has a distinct dependency/licensing/runtime boundary. This image
+# inherits only the analyzer-specific CUDA base and pins its core stack so the
+# SAM package cannot silently replace the tested Torch/CUDA runtime.
+FROM video-audio-analyzer-audio:dev
+
+USER root
+COPY docker/sam-audio-constraints.txt /tmp/sam-audio-constraints.txt
+RUN git clone --depth 1 https://github.com/facebookresearch/sam-audio.git /opt/sam-audio \
+    && python3 -m pip install --no-cache-dir --constraint /tmp/sam-audio-constraints.txt \
+       "dacvae @ git+https://github.com/facebookresearch/dacvae.git" \
+       audiobox_aesthetics \
+       "imagebind @ git+https://github.com/facebookresearch/ImageBind.git" \
+       "laion-clap @ git+https://github.com/lematt1991/CLAP.git" \
+       pydub torchdiffeq \
+    && python3 -m pip install --no-cache-dir --no-deps /opt/sam-audio \
+    && python3 -c 'import torch,torchaudio,torchvision,numpy,transformers,sam_audio; assert torch.__version__ == "2.11.0+cu130", torch.__version__; assert torchaudio.__version__ == "2.11.0+cu130", torchaudio.__version__; assert torchvision.__version__ == "0.26.0+cu130", torchvision.__version__; assert numpy.__version__ == "1.26.4", numpy.__version__; print("isolated SAM Audio imports; pinned analyzer CUDA stack preserved")'
+
+COPY src/video_audio_analyzer/sam_audio_worker.py /opt/vaa/sam_audio_worker.py
+ENV PYTHONPATH=/opt/vaa:/app/src:/opt/perception_models
+ENV VIDEO_AUDIO_ANALYZER_SAM_AUDIO_PATH=/models/sam-audio-large-tv
+ENV VIDEO_AUDIO_ANALYZER_SAM_AUDIO_MODEL=facebook/sam-audio-large-tv
+ENV VIDEO_AUDIO_ANALYZER_SAM_AUDIO_CHECKPOINT_FILENAME=sam-audio-large-tv_checkpoint.pt
+ENV VIDEO_AUDIO_ANALYZER_SAM_T5_PATH=/models/sam-audio-t5-base
+WORKDIR /opt/sam-audio
+EXPOSE 8033
+ENTRYPOINT ["python3", "-m", "uvicorn", "sam_audio_worker:app", "--app-dir", "/opt/vaa", "--host", "0.0.0.0", "--port", "8033"]

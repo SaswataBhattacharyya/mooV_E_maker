@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  audio-pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: audio-pipeline
+    volumes:
+      # Mount the data directory from host to container
+      - "../data:/app/data"
+    # Override command if needed
+    # command: python prepare_dataset.py --dry_run --verbose
+    # Uncomment for GPU support (requires nvidia-docker)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]

@@ -1,0 +1,4 @@
+interface:
+  display_name: "TTS Direct Emotion Style"
+  short_description: "Direct supported emotion and voice styles"
+  default_prompt: "Use $tts-direct-emotion-style to apply valid emotion and speaking-style direction to these dialogue lines."

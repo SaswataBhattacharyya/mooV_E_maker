@@ -1,0 +1,72 @@
+services:
+  peav-query-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.peav
+    image: video-audio-analyzer-peav:dev
+    profiles: [peav-search]
+    network_mode: host
+    gpus: all
+    environment:
+      PYTHONPATH: /opt/perception_models:/app/src
+      VIDEO_AUDIO_ANALYZER_PE_AV_PATH: /models/pe-av-base
+    volumes:
+      - ./models:/models:ro
+      - ./src:/app/src:ro
+    entrypoint: ["python", "-m", "video_audio_analyzer.peav_worker"]
+  video-audio-analyzer:
+    build: .
+    profiles: [analyzer]
+    environment:
+      PYTHONPATH: /app/src
+    volumes:
+      - ./runs:/app/runs
+      - ./manifests:/app/manifests
+      - ./inputs:/app/inputs:ro
+  audio-model-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.audio_worker
+    image: video-audio-analyzer-audio:dev
+    profiles: [audio-models]
+    network_mode: host
+    environment:
+      PYTHONPATH: /app/src:/opt/perception_models
+      VIDEO_AUDIO_ANALYZER_NEMO_VAD_MODEL: /models/nemo/vad_multilingual_marblenet.nemo
+      VIDEO_AUDIO_ANALYZER_NEMO_SPEAKER_MODEL: /models/nemo/titanet_large.nemo
+      VIDEO_AUDIO_ANALYZER_CLAP_CHECKPOINT: /models/clap/630k-audioset-best.pt
+      VIDEO_AUDIO_ANALYZER_CLAP_DEVICE: cuda
+      VIDEO_AUDIO_ANALYZER_SAM_AUDIO_PATH: /models/sam-audio-large-tv
+      VIDEO_AUDIO_ANALYZER_SAM_T5_PATH: /models/sam-audio-t5-base
+    volumes:
+      - ./models:/models:ro
+      - ./src:/app/src:ro
+  talknet-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.talknet
+    image: video-audio-analyzer-talknet:dev
+    profiles: [active-speaker]
+    network_mode: host
+    gpus: all
+    environment:
+      VIDEO_AUDIO_ANALYZER_TALKNET_CHECKPOINT: /models/talknet/pretrain_TalkSet.model
+      VIDEO_AUDIO_ANALYZER_S3FD_CHECKPOINT: /models/talknet/sfd_face.pth
+    volumes:
+      - ./models/talknet:/models/talknet:ro
+  sam-audio-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.sam_audio
+    image: video-audio-analyzer-sam-audio:dev
+    profiles: [sam-audio]
+    network_mode: host
+    gpus: all
+    environment:
+      VIDEO_AUDIO_ANALYZER_SAM_AUDIO_PATH: /models/sam-audio-large-tv
+      VIDEO_AUDIO_ANALYZER_SAM_AUDIO_MODEL: facebook/sam-audio-large-tv
+      VIDEO_AUDIO_ANALYZER_SAM_AUDIO_CHECKPOINT_FILENAME: sam-audio-large-tv_checkpoint.pt
+      VIDEO_AUDIO_ANALYZER_SAM_T5_PATH: /models/sam-audio-t5-base
+    volumes:
+      - ./models/sam-audio-large-tv:/models/sam-audio-large-tv:ro
+      - ./models/sam-audio-t5-base:/models/sam-audio-t5-base:ro

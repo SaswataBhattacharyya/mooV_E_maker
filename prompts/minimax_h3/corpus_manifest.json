@@ -1,0 +1,13 @@
+{
+  "corpus_id": "minimax_h3_director_rules",
+  "version": "h3_prompt_rules_v1",
+  "status": "active",
+  "files": [
+    "reference_roles.md",
+    "shot_prompt_contract.md",
+    "examples.json",
+    "validation.json"
+  ],
+  "source_policy": "Original concise operational rules; consult official MiniMax/ComfyUI guides at implementation time and do not copy complete source documentation.",
+  "created_at": "2026-10-01"
+}

@@ -1,0 +1,653 @@
+"""
+CosyVoice3 Engine Wrapper for TTS Audio Suite
+
+Fun-CosyVoice3-0.5B integration providing:
+- 9-language zero-shot voice cloning (Chinese, English, Japanese, Korean, German, Spanish, French, Italian, Russian)
+- 18+ Chinese dialects support
+- Instruct mode for emotions, speed, and dialects
+- Cross-lingual voice cloning with fine-grained control
+"""
+
+# FIX: PyYAML 6.0+ compatibility patch - MUST be before any yaml imports
+# Issue: 'Loader' object has no attribute 'max_depth' error (GitHub #220)
+# This patch ensures yaml loaders have max_depth attribute before hyperpyyaml uses them
+import yaml
+if not hasattr(yaml.Loader, 'max_depth'):
+    yaml.Loader.max_depth = 100
+if not hasattr(yaml.FullLoader, 'max_depth'):
+    yaml.FullLoader.max_depth = 100
+if not hasattr(yaml.SafeLoader, 'max_depth'):
+    yaml.SafeLoader.max_depth = 100
+
+import os
+import sys
+import time
+import torch
+import torchaudio
+import tempfile
+import folder_paths
+import numpy as np
+from typing import Optional, List, Dict, Any, Generator
+import comfy.model_management as model_management
+
+from utils.models.unified_model_interface import unified_model_interface
+from utils.models.factory_config import ModelLoadConfig
+from utils.models.extra_paths import find_model_in_paths, get_preferred_download_path, get_all_tts_model_paths
+
+
+class CosyVoiceEngine:
+    """
+    CosyVoice3 Engine wrapper for TTS Audio Suite integration.
+    
+    Supports:
+    - Zero-shot voice cloning (9 languages)
+    - Instruct mode for dialects, emotions, speed
+    - Cross-lingual voice cloning
+    - Fine-grained control with [breath] and other tags
+    """
+    
+    # Supported languages
+    SUPPORTED_LANGUAGES = [
+        "chinese", "english", "japanese", "korean", 
+        "german", "spanish", "french", "italian", "russian"
+    ]
+    
+    # Supported Chinese dialects (for instruct mode)
+    SUPPORTED_DIALECTS = [
+        "guangdong", "minnan", "sichuan", "dongbei", "shan3xi", "shan1xi",
+        "shanghai", "tianjin", "shandong", "ningxia", "gansu"
+    ]
+    
+    # Generation modes
+    MODES = ["zero_shot", "instruct", "cross_lingual"]
+
+    @staticmethod
+    def _check_interrupt():
+        """Raise immediately when ComfyUI interrupt was requested."""
+        if model_management.interrupt_processing:
+            raise InterruptedError("CosyVoice3 generation interrupted by user")
+    
+    def __init__(self, model_dir: str = "Fun-CosyVoice3-0.5B-RL", device: str = "auto",
+                 use_fp16: bool = False, load_trt: bool = False, load_vllm: bool = False):
+        """
+        Initialize CosyVoice3 engine.
+
+        Args:
+            model_dir: Model identifier ("Fun-CosyVoice3-0.5B-RL", "Fun-CosyVoice3-0.5B", or "local:...")
+            device: Device to use ("auto", "cuda", "cpu")
+            use_fp16: Use FP16 for faster inference
+            load_trt: Load TensorRT engine (optional optimization)
+            load_vllm: Load vLLM engine (optional optimization)
+        """
+        # Store original model_identifier to know which variant was requested
+        self.model_identifier = model_dir
+
+        # Resolve model directory using extra_model_paths
+        self.model_dir = self._find_model_directory(model_dir)
+
+        self.device = self._resolve_device(device)
+        self.use_fp16 = use_fp16 and self.device != "cpu"
+        self.load_trt = load_trt
+        self.load_vllm = load_vllm
+
+        self._cosyvoice = None
+        self._model_config = None
+        self._quantized_move_warning_shown = False
+        
+    def _find_model_directory(self, model_identifier: str) -> str:
+        """Find CosyVoice model directory using extra_model_paths configuration."""
+        try:
+            # Handle local: prefix
+            if model_identifier.startswith("local:"):
+                model_name = model_identifier[6:]  # Remove "local:" prefix
+
+                # Both variants use the shared folder name
+                folder_name = "Fun-CosyVoice3-0.5B"
+
+                # Search in all configured TTS paths
+                all_tts_paths = get_all_tts_model_paths('TTS')
+                for base_path in all_tts_paths:
+                    # Check direct path (models/TTS/Fun-CosyVoice3-0.5B)
+                    direct_path = os.path.join(base_path, folder_name)
+                    if os.path.exists(os.path.join(direct_path, "cosyvoice3.yaml")):
+                        return direct_path
+
+                    # Check organized path (models/TTS/CosyVoice/Fun-CosyVoice3-0.5B)
+                    organized_path = os.path.join(base_path, "CosyVoice", folder_name)
+                    if os.path.exists(os.path.join(organized_path, "cosyvoice3.yaml")):
+                        return organized_path
+
+                raise FileNotFoundError(f"Local CosyVoice model '{model_name}' not found in any configured path")
+            
+            else:
+                # Auto-download case - return preferred download path with shared folder name
+                base_path = get_preferred_download_path(model_type='TTS', engine_name='CosyVoice')
+                # Both variants use the shared folder name
+                folder_name = "Fun-CosyVoice3-0.5B"
+                model_path = os.path.join(base_path, folder_name)
+                
+                # Check if model exists and is complete, if not trigger auto-download
+                needs_download = False
+                if not os.path.exists(model_path):
+                    needs_download = True
+                    print(f"📥 CosyVoice3 model directory not found, triggering auto-download...")
+                else:
+                    # Check model completeness - need to check which variant was requested
+                    try:
+                        from engines.cosyvoice.cosyvoice_downloader import CosyVoiceDownloader
+                        downloader = CosyVoiceDownloader()
+                        # Determine variant name for verification (need -RL suffix for RL variant)
+                        variant_name = "Fun-CosyVoice3-0.5B-RL" if "RL" in model_identifier else "Fun-CosyVoice3-0.5B"
+                        downloader._verify_model(model_path, variant_name, verbose=False)
+                    except Exception as verify_error:
+                        needs_download = True
+                        print(f"📥 CosyVoice3 model incomplete (missing files), triggering re-download...")
+                        print(f"    Verification error: {verify_error}")
+                
+                if needs_download:
+                    try:
+                        if 'downloader' not in locals():
+                            from engines.cosyvoice.cosyvoice_downloader import CosyVoiceDownloader
+                            downloader = CosyVoiceDownloader()
+                        # Determine variant name for download (need -RL suffix for RL variant)
+                        variant_name = "Fun-CosyVoice3-0.5B-RL" if "RL" in model_identifier else "Fun-CosyVoice3-0.5B"
+                        downloaded_path = downloader.download_model(variant_name)
+                        print(f"✅ CosyVoice3 auto-download completed: {downloaded_path}")
+                        return downloaded_path
+                    except Exception as download_error:
+                        raise RuntimeError(f"CosyVoice3 model not found/incomplete and auto-download failed: {download_error}")
+                
+                return model_path
+                
+        except Exception:
+            # Fallback to default path
+            model_name = model_identifier.replace("local:", "") if model_identifier.startswith("local:") else model_identifier
+            return os.path.join(folder_paths.models_dir, "TTS", "CosyVoice", model_name)
+    
+    def _resolve_device(self, device: str) -> str:
+        """Resolve device string to actual device."""
+        from utils.device import resolve_torch_device
+        resolved = resolve_torch_device(device)
+        return resolved
+
+    def _ensure_model_loaded(self):
+        """Load the CosyVoice3 model using unified model interface."""
+        if self._cosyvoice is not None:
+            return
+
+        # Determine which LLM file to use based on model variant
+        llm_filename = "llm.rl.pt" if "RL" in self.model_identifier else "llm.pt"
+
+        # Create model configuration
+        self._model_config = ModelLoadConfig(
+            engine_name="cosyvoice",
+            model_type="tts",
+            model_name="Fun-CosyVoice3-0.5B",
+            device=self.device,
+            model_path=self.model_dir,
+            additional_params={
+                "use_fp16": self.use_fp16,
+                "load_trt": self.load_trt,
+                "load_vllm": self.load_vllm,
+                "llm_filename": llm_filename  # Pass variant-specific LLM filename
+            }
+        )
+
+        # Load via unified interface
+        self._cosyvoice = unified_model_interface.load_model(self._model_config)
+    
+    def _ensure_device_loaded(self):
+        """
+        Check and reload model if it was offloaded to CPU.
+
+        Delegates to the ComfyUI wrapper's model_load() method for proper device management.
+        """
+        if self._cosyvoice is None:
+            return
+
+        from utils.device import resolve_torch_device
+        target_device = resolve_torch_device("auto")
+
+        # The unified interface returns a ComfyUIModelWrapper, not the raw model
+        # Check if wrapper indicates model is not on GPU
+        if hasattr(self._cosyvoice, '_is_loaded_on_gpu') and not self._cosyvoice._is_loaded_on_gpu:
+            # Model was offloaded, use wrapper's model_load to properly reload
+            if hasattr(self._cosyvoice, 'model_load'):
+                self._cosyvoice.model_load(target_device)
+            return
+
+        # Also check actual component devices as a safety check
+        if hasattr(self._cosyvoice, 'model'):
+            cosyvoice_model = self._cosyvoice.model
+
+            # Check llm component device
+            if hasattr(cosyvoice_model, 'llm') and hasattr(cosyvoice_model.llm, 'parameters'):
+                try:
+                    first_param = next(cosyvoice_model.llm.parameters())
+                    current_device = first_param.device
+
+                    # Normalize device comparison (cuda:0 == cuda)
+                    if current_device.type != torch.device(target_device).type:
+                        # Device mismatch detected, trigger reload
+                        if hasattr(self._cosyvoice, 'model_load'):
+                            self._cosyvoice.model_load(target_device)
+                except StopIteration:
+                    pass
+    
+    def generate_zero_shot(
+        self,
+        text: str,
+        prompt_wav: str,
+        prompt_text: str,
+        speed: float = 1.0,
+        stream: bool = False,
+        progress_bar=None
+    ) -> torch.Tensor:
+        """
+        Generate speech using zero-shot voice cloning.
+        
+        Args:
+            text: Text to synthesize
+            prompt_wav: Reference audio file for voice cloning
+            prompt_text: Transcript of reference audio (REQUIRED)
+            speed: Speech speed multiplier (0.5-2.0)
+            stream: Enable streaming output
+            progress_bar: ComfyUI progress bar for tracking
+            
+        Returns:
+            Generated audio as torch.Tensor [1, samples] at 24000 Hz
+        """
+        self._ensure_model_loaded()
+        self._ensure_device_loaded()
+
+        # CosyVoice3 REQUIRES the prompt_text to be in format:
+        # 'You are a helpful assistant.<|endofprompt|>' + actual_transcript
+        # This is critical for correct audio generation!
+        formatted_prompt_text = prompt_text
+        if not prompt_text.startswith('You are a helpful assistant.'):
+            formatted_prompt_text = f'You are a helpful assistant.<|endofprompt|>{prompt_text}'
+        elif '<|endofprompt|>' not in prompt_text:
+            # Has prefix but missing delimiter
+            formatted_prompt_text = prompt_text.replace('You are a helpful assistant.', 'You are a helpful assistant.<|endofprompt|>')
+        
+        # Collect all audio chunks
+        audio_chunks = []
+
+        # Detect if text contains CosyVoice tags (in [tag] format after adapter conversion)
+        # If tags present, disable text_frontend to preserve them
+        cosyvoice_tags = ['[breath]', '[quick_breath]', '[laughter]', '[cough]', '[sigh]',
+                         '[gasp]', '[noise]', '[hissing]', '[vocalized-noise]',
+                         '[lipsmack]', '[mn]', '[clucking]', '[accent]',
+                         '<strong>', '</strong>', '<laughter>', '</laughter>',
+                         '<|en|>', '<|zh|>', '<|ja|>', '<|ko|>']
+        has_tags = any(tag in text for tag in cosyvoice_tags)
+        text_frontend = not has_tags
+
+        # Display the actual text being sent to the model
+        print("📝 CosyVoice3 - Generating zero_shot:")
+        print("=" * 60)
+        print(text)
+        print("=" * 60)
+        if has_tags:
+            print(f"⚙️  text_frontend=False (special tags detected)")
+
+        generation_start = time.time()
+        for i, output in enumerate(self._cosyvoice.inference_zero_shot(
+            tts_text=text,
+            prompt_text=formatted_prompt_text,
+            prompt_wav=prompt_wav,
+            stream=stream,
+            speed=speed,
+            text_frontend=text_frontend
+        )):
+            self._check_interrupt()
+            audio_chunk = output['tts_speech']
+            audio_chunks.append(audio_chunk)
+
+            if progress_bar is not None:
+                progress_bar.update(1)
+        
+        # Combine all chunks
+        if audio_chunks:
+            audio_tensor = torch.cat(audio_chunks, dim=-1)
+        else:
+            # Return silence if no chunks
+            audio_tensor = torch.zeros(1, self.get_sample_rate(), dtype=torch.float32)
+
+        # Report generation stats
+        generation_time = time.time() - generation_start
+        audio_duration = audio_tensor.shape[-1] / self.get_sample_rate()
+        rtf = generation_time / audio_duration if audio_duration > 0 else 0
+        print(f"✅ Generated {audio_duration:.1f}s audio in {generation_time:.1f}s (RTF: {rtf:.2f}x)")
+
+        # Normalize dimensions to [1, samples]
+        audio_tensor = self._normalize_audio_dims(audio_tensor)
+
+        return audio_tensor
+    
+    def generate_instruct(
+        self,
+        text: str,
+        prompt_wav: str,
+        instruct_text: str,
+        speed: float = 1.0,
+        stream: bool = False,
+        progress_bar=None
+    ) -> torch.Tensor:
+        """
+        Generate speech using instruct mode for controlling emotions, dialects, speed.
+        
+        Args:
+            text: Text to synthesize
+            prompt_wav: Reference audio file for voice cloning
+            instruct_text: Instruction text (e.g., "请用广东话表达。<|endofprompt|>")
+            speed: Speech speed multiplier (0.5-2.0)
+            stream: Enable streaming output
+            text_frontend: Use text normalization frontend
+            progress_bar: ComfyUI progress bar for tracking
+
+        Returns:
+            Generated audio as torch.Tensor [1, samples] at 24000 Hz
+        """
+        self._ensure_model_loaded()
+        self._ensure_device_loaded()
+
+        # CosyVoice3 instruct format MUST be: 'You are a helpful assistant. {instruction}<|endofprompt|>'
+        # Example: 'You are a helpful assistant. 请用广东话表达。<|endofprompt|>'
+        formatted_instruct = instruct_text
+        if not instruct_text.endswith('<|endofprompt|>'):
+            if instruct_text.startswith('You are a helpful assistant'):
+                formatted_instruct = f'{instruct_text}<|endofprompt|>'
+            else:
+                formatted_instruct = f'You are a helpful assistant. {instruct_text}<|endofprompt|>'
+        elif not instruct_text.startswith('You are a helpful assistant'):
+            # Has <|endofprompt|> but missing prefix
+            formatted_instruct = f'You are a helpful assistant. {instruct_text}'
+        
+        # Collect all audio chunks
+        audio_chunks = []
+
+        # Detect if text contains CosyVoice tags - disable text_frontend to preserve them
+        cosyvoice_tags = ['[breath]', '[quick_breath]', '[laughter]', '[cough]', '[sigh]',
+                         '[gasp]', '[noise]', '[hissing]', '[vocalized-noise]',
+                         '[lipsmack]', '[mn]', '[clucking]', '[accent]',
+                         '<strong>', '</strong>', '<laughter>', '</laughter>',
+                         '<|en|>', '<|zh|>', '<|ja|>', '<|ko|>']
+        has_tags = any(tag in text for tag in cosyvoice_tags)
+        text_frontend = not has_tags
+
+        # Display the actual text being sent to the model
+        print("📝 CosyVoice3 - Generating instruct2:")
+        print("=" * 60)
+        print(text)
+        print("=" * 60)
+        if has_tags:
+            print(f"⚙️  text_frontend=False (special tags detected)")
+
+        generation_start = time.time()
+        for i, output in enumerate(self._cosyvoice.inference_instruct2(
+            tts_text=text,
+            instruct_text=formatted_instruct,
+            prompt_wav=prompt_wav,
+            stream=stream,
+            speed=speed,
+            text_frontend=text_frontend
+        )):
+            self._check_interrupt()
+            audio_chunk = output['tts_speech']
+            audio_chunks.append(audio_chunk)
+
+            if progress_bar is not None:
+                progress_bar.update(1)
+
+        # Combine all chunks
+        if audio_chunks:
+            audio_tensor = torch.cat(audio_chunks, dim=-1)
+        else:
+            audio_tensor = torch.zeros(1, self.get_sample_rate(), dtype=torch.float32)
+
+        # Report generation stats
+        generation_time = time.time() - generation_start
+        audio_duration = audio_tensor.shape[-1] / self.get_sample_rate()
+        rtf = generation_time / audio_duration if audio_duration > 0 else 0
+        print(f"✅ Generated {audio_duration:.1f}s audio in {generation_time:.1f}s (RTF: {rtf:.2f}x)")
+
+        # Normalize dimensions
+        audio_tensor = self._normalize_audio_dims(audio_tensor)
+        
+        return audio_tensor
+    
+    def generate_cross_lingual(
+        self,
+        text: str,
+        prompt_wav: str,
+        speed: float = 1.0,
+        stream: bool = False,
+        progress_bar=None
+    ) -> torch.Tensor:
+        """
+        Generate speech using cross-lingual mode with fine-grained control.
+        
+        Supports embedded control tags like [breath] in the text.
+        
+        Args:
+            text: Text to synthesize (can include [breath] and other tags)
+            prompt_wav: Reference audio file for voice cloning
+            speed: Speech speed multiplier (0.5-2.0)
+            stream: Enable streaming output
+            text_frontend: Use text normalization frontend
+            progress_bar: ComfyUI progress bar for tracking
+
+        Returns:
+            Generated audio as torch.Tensor [1, samples] at 24000 Hz
+        """
+        self._ensure_model_loaded()
+        self._ensure_device_loaded()
+
+        # CosyVoice3 cross_lingual also requires the system prompt prefix in the text
+        # Example: 'You are a helpful assistant.<|endofprompt|>[breath]...'
+        formatted_text = text
+        if not text.startswith('You are a helpful assistant.'):
+            formatted_text = f'You are a helpful assistant.<|endofprompt|>{text}'
+        elif '<|endofprompt|>' not in text:
+            formatted_text = text.replace('You are a helpful assistant.', 'You are a helpful assistant.<|endofprompt|>')
+        
+        # Collect all audio chunks
+        audio_chunks = []
+
+        # Detect if text contains CosyVoice tags - disable text_frontend to preserve them
+        cosyvoice_tags = ['[breath]', '[quick_breath]', '[laughter]', '[cough]', '[sigh]',
+                         '[gasp]', '[noise]', '[hissing]', '[vocalized-noise]',
+                         '[lipsmack]', '[mn]', '[clucking]', '[accent]',
+                         '<strong>', '</strong>', '<laughter>', '</laughter>',
+                         '<|en|>', '<|zh|>', '<|ja|>', '<|ko|>']
+        has_tags = any(tag in formatted_text for tag in cosyvoice_tags)
+        text_frontend = not has_tags
+
+        # Display the actual text being sent to the model
+        print("📝 CosyVoice3 - Generating cross_lingual:")
+        print("=" * 60)
+        print(text)
+        print("=" * 60)
+        if has_tags:
+            print(f"⚙️  text_frontend=False (special tags detected)")
+
+        generation_start = time.time()
+        for i, output in enumerate(self._cosyvoice.inference_cross_lingual(
+            tts_text=formatted_text,
+            prompt_wav=prompt_wav,
+            stream=stream,
+            speed=speed,
+            text_frontend=text_frontend
+        )):
+            self._check_interrupt()
+            audio_chunk = output['tts_speech']
+            audio_chunks.append(audio_chunk)
+
+            if progress_bar is not None:
+                progress_bar.update(1)
+
+        # Combine all chunks
+        if audio_chunks:
+            audio_tensor = torch.cat(audio_chunks, dim=-1)
+        else:
+            audio_tensor = torch.zeros(1, self.get_sample_rate(), dtype=torch.float32)
+
+        # Report generation stats
+        generation_time = time.time() - generation_start
+        audio_duration = audio_tensor.shape[-1] / self.get_sample_rate()
+        rtf = generation_time / audio_duration if audio_duration > 0 else 0
+        print(f"✅ Generated {audio_duration:.1f}s audio in {generation_time:.1f}s (RTF: {rtf:.2f}x)")
+
+        # Normalize dimensions
+        audio_tensor = self._normalize_audio_dims(audio_tensor)
+
+        return audio_tensor
+    
+    def generate(
+        self,
+        text: str,
+        prompt_wav: str,
+        prompt_text: Optional[str] = None,
+        mode: str = "zero_shot",
+        instruct_text: Optional[str] = None,
+        speed: float = 1.0,
+        stream: bool = False,
+        progress_bar=None,
+        **kwargs
+    ) -> torch.Tensor:
+        """
+        Unified generation method that routes to appropriate mode.
+        
+        Args:
+            text: Text to synthesize
+            prompt_wav: Reference audio file for voice cloning
+            prompt_text: Transcript of reference audio (required for zero_shot mode)
+            mode: Generation mode ("zero_shot", "instruct", "cross_lingual")
+            instruct_text: Instruction for instruct mode
+            speed: Speech speed multiplier (0.5-2.0)
+            stream: Enable streaming output
+            progress_bar: ComfyUI progress bar for tracking
+            **kwargs: Additional parameters (ignored for compatibility)
+
+        Returns:
+            Generated audio as torch.Tensor [1, samples] at 24000 Hz
+        """
+        if mode == "zero_shot":
+            if not prompt_text:
+                raise ValueError("prompt_text is required for zero_shot mode. "
+                               "Provide a transcript of the reference audio.")
+            return self.generate_zero_shot(
+                text=text,
+                prompt_wav=prompt_wav,
+                prompt_text=prompt_text,
+                speed=speed,
+                stream=stream,
+                progress_bar=progress_bar
+            )
+        elif mode == "instruct":
+            if not instruct_text:
+                instruct_text = "You are a helpful assistant.<|endofprompt|>"
+            return self.generate_instruct(
+                text=text,
+                prompt_wav=prompt_wav,
+                instruct_text=instruct_text,
+                speed=speed,
+                stream=stream,
+                progress_bar=progress_bar
+            )
+        elif mode == "cross_lingual":
+            return self.generate_cross_lingual(
+                text=text,
+                prompt_wav=prompt_wav,
+                speed=speed,
+                stream=stream,
+                progress_bar=progress_bar
+            )
+        else:
+            raise ValueError(f"Unknown mode: {mode}. Supported: {self.MODES}")
+    
+    def _normalize_audio_dims(self, audio_tensor: torch.Tensor) -> torch.Tensor:
+        """Normalize audio tensor to [1, samples] format."""
+        if audio_tensor.dim() == 1:
+            audio_tensor = audio_tensor.unsqueeze(0)  # [samples] -> [1, samples]
+        elif audio_tensor.dim() == 3:
+            audio_tensor = audio_tensor.squeeze(0)    # [1, 1, samples] -> [1, samples]
+        return audio_tensor
+    
+    def get_sample_rate(self) -> int:
+        """Get the native sample rate of the engine."""
+        # CosyVoice3 uses 24000 Hz (from cosyvoice3.yaml)
+        if self._cosyvoice is not None and hasattr(self._cosyvoice, 'sample_rate'):
+            return self._cosyvoice.sample_rate
+        return 24000
+    
+    def get_supported_languages(self) -> List[str]:
+        """Get list of supported languages."""
+        return self.SUPPORTED_LANGUAGES.copy()
+    
+    def get_supported_dialects(self) -> List[str]:
+        """Get list of supported Chinese dialects."""
+        return self.SUPPORTED_DIALECTS.copy()
+    
+    def inference_vc(self,
+                    source_wav: str,
+                    prompt_wav: str,
+                    speed: float = 1.0,
+                    stream: bool = False) -> torch.Tensor:
+        """
+        Voice conversion using CosyVoice3's native VC capability.
+
+        Args:
+            source_wav: Source audio file path (CosyVoice handles resampling to 16kHz)
+            prompt_wav: Reference/target voice file path
+            speed: Speech speed multiplier
+            stream: Enable streaming (not implemented for VC)
+
+        Returns:
+            Converted audio tensor at 24kHz
+        """
+        self._ensure_model_loaded()
+        self._ensure_device_loaded()
+
+        # Call CosyVoice's inference_vc method
+        # Returns generator, collect all output
+        audio_chunks = []
+        for output in self._cosyvoice.inference_vc(
+            source_wav=source_wav,
+            prompt_wav=prompt_wav,
+            stream=stream,
+            speed=speed
+        ):
+            self._check_interrupt()
+            audio_chunks.append(output['tts_speech'])
+
+        # Concatenate all chunks
+        if audio_chunks:
+            audio = torch.cat(audio_chunks, dim=-1)
+        else:
+            audio = torch.zeros(1, 24000, dtype=torch.float32)
+
+        return audio
+
+    def to(self, device):
+        """
+        Move all model components to the specified device.
+
+        Delegates to the CosyVoiceHandler via the ComfyUI wrapper for proper
+        component-level device management.
+        """
+        self.device = device
+
+        # Delegate to the ComfyUI wrapper's model_load which uses CosyVoiceHandler
+        if self._cosyvoice is not None and hasattr(self._cosyvoice, 'model_load'):
+            self._cosyvoice.model_load(device)
+
+        return self
+
+    def unload(self):
+        """Unload the model to free memory."""
+        if self._model_config:
+            unified_model_interface.unload_model(self._model_config)
+        self._cosyvoice = None
+        self._model_config = None

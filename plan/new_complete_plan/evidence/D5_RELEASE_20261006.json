@@ -1,0 +1,126 @@
+{
+  "status": "passed",
+  "scope": "D5 disposable two-scene release, native audio and video preserved, no film stitching",
+  "project_id": "disposable-d5-two-scene-continuity-acceptance-2026-10-05-dedfec5c",
+  "run_id": "65d3884b-0a07-4da6-9d02-21db48921336",
+  "clips": [
+    {
+      "shot_id": "cut-01",
+      "take_id": "e275ffa5-0972-5762-b26e-2d2577efe26f",
+      "prompt_id": "8c42ab13-23c2-5c2d-8729-89ea286a7ce9",
+      "attempt": 1,
+      "asset_id": "pa-2864a4f32cf745eb",
+      "video_path": "/home/riki/web_dev/story_builder/output/disposable-d5-two-scene-continuity-acceptance-2026-10-05-dedfec5c/production_v2/runs/65d3884b-0a07-4da6-9d02-21db48921336/shots/cut-01/takes/e275ffa5-0972-5762-b26e-2d2577efe26f/attempt-1/db1c87a66f9449dc90c7919061ae8bfe_cut-01_00002_.mp4",
+      "sha256": "9b1d685726a7449ad6fbc187ff638958455014052423df797237a27b6e5edaf7",
+      "duration_seconds": 5.167,
+      "streams": [
+        {
+          "type": "video",
+          "codec": "h264",
+          "width": 864,
+          "height": 480
+        },
+        {
+          "type": "audio",
+          "codec": "aac",
+          "width": null,
+          "height": null
+        }
+      ],
+      "staging_entries": 0,
+      "reference_videos": [],
+      "parent_take_id": null
+    },
+    {
+      "shot_id": "cut-02",
+      "take_id": "c76c5a53-445c-5108-831e-ca5a99b442f9",
+      "prompt_id": "2ff64834-8196-50a9-9a2f-fa760110b12e",
+      "attempt": 1,
+      "asset_id": "pa-6151bf6609bd4b7e",
+      "video_path": "/home/riki/web_dev/story_builder/output/disposable-d5-two-scene-continuity-acceptance-2026-10-05-dedfec5c/production_v2/runs/65d3884b-0a07-4da6-9d02-21db48921336/shots/cut-02/takes/c76c5a53-445c-5108-831e-ca5a99b442f9/attempt-1/9ed2b2552fb345bdb6fa31a5a3fdbf07_cut-02_00003_.mp4",
+      "sha256": "105cdf67f90ecd3785df696af606a786960920563c511b8241ff39310ed7b742",
+      "duration_seconds": 5.167,
+      "streams": [
+        {
+          "type": "video",
+          "codec": "h264",
+          "width": 864,
+          "height": 480
+        },
+        {
+          "type": "audio",
+          "codec": "aac",
+          "width": null,
+          "height": null
+        }
+      ],
+      "staging_entries": 0,
+      "reference_videos": [
+        {
+          "asset_id": "pa-2902754773ff4982",
+          "audio_intent": "",
+          "end_sec": 5.167,
+          "include_paired_soundtrack": false,
+          "intent": "Continue motion, character appearance and screen geography from the final moment of this accepted same-scene cut.",
+          "role": "previous_cut_tail",
+          "start_sec": 3.167
+        }
+      ],
+      "parent_take_id": "abd78b01-24a0-5711-a610-ab18116e2b1f"
+    },
+    {
+      "shot_id": "cut-03",
+      "take_id": "06ad5392-cff7-537d-92d4-19bcc13cfbf2",
+      "prompt_id": "5e08a12d-52bb-5234-bc96-80ed308e93f3",
+      "attempt": 1,
+      "asset_id": "pa-5ed70f7773804144",
+      "video_path": "/home/riki/web_dev/story_builder/output/disposable-d5-two-scene-continuity-acceptance-2026-10-05-dedfec5c/production_v2/runs/65d3884b-0a07-4da6-9d02-21db48921336/shots/cut-03/takes/06ad5392-cff7-537d-92d4-19bcc13cfbf2/attempt-1/1c6222baf4dc477a8a433798d89c1e1d_cut-03_00001_.mp4",
+      "sha256": "6c94d2a6322b995d6b436baf2da6e874901fe32e1b43f7430f2891426f02cf1c",
+      "duration_seconds": 5.167,
+      "streams": [
+        {
+          "type": "video",
+          "codec": "h264",
+          "width": 1344,
+          "height": 768
+        },
+        {
+          "type": "audio",
+          "codec": "aac",
+          "width": null,
+          "height": null
+        }
+      ],
+      "staging_entries": 0,
+      "reference_videos": [],
+      "parent_take_id": null
+    }
+  ],
+  "cut01_quality_review": "/tmp/storybuilder-d5-corrected-cut01-review-20261006.json",
+  "cut02_quality": "Previously accepted exact dialogue correction; original bytes retained.",
+  "cut03_quality": "Human explicitly accepted no unwanted speech despite uncertain ASR; original bytes retained.",
+  "continuity": "Reviewed corrected cut01 against accepted cut02 appearance and doorway; cut02 retains its original predecessor tail lineage, no false seamless claim. Cut03 is fresh scene with no prior-scene video.",
+  "browser": {
+    "status": "passed",
+    "exit_code": 0,
+    "scope": "real saved disposable cancelled take; original cancellation succeeded in prior bundled-browser attempt, whose playback failed codec; this system-browser check verifies cancellation/browser reload; all three selected accepted release clips actual native video decode and playback; prior cancelled attempt read-only; API lifespan off, no remote prompt or inference"
+  },
+  "gpu_observed": {
+    "samples": 71,
+    "maximum_temperature_c": 78.0,
+    "maximum_graphics_clock_mhz": 2080.0,
+    "watchdog": {
+      "prompt_id": "8c42ab13-23c2-5c2d-8729-89ea286a7ce9",
+      "pid": 482935,
+      "tripped": false,
+      "gpu": {
+        "temperature_c": 68.0,
+        "graphics_clock_mhz": 2080.0
+      },
+      "sampled_at": 1791310746.4151237,
+      "remote_terminal": true
+    }
+  },
+  "comfy_queue_empty": true,
+  "original_rejected_media_preserved": true
+}

@@ -1,0 +1,15 @@
+{
+  "style_id": "corporate_pitch",
+  "name": "Corporate Pitch / Meeting",
+  "version": 1,
+  "description": "Audience-aware business communication with evidence and executive clarity.",
+  "stages": {
+    "story": "State the business problem, insight, solution, proof, risk and next action in audience order.",
+    "scene_direction": "Use confident restrained composition, legible charts and transitions that support the argument.",
+    "image": "Prefer polished brand-safe visuals, clear diagrams and uncluttered executive framing.",
+    "audio": "Use confident measured delivery, subtle music and restrained transitions; prioritize speech clarity.",
+    "video": "Use deliberate camera and graphic motion that reinforces the business narrative without spectacle.",
+    "review": "Check audience relevance, claim evidence, readability, brand consistency and action clarity."
+  },
+  "analysis": {"tone": ["confident", "precise"], "camera_priority": "credibility", "pacing": "argument-led"}
+}

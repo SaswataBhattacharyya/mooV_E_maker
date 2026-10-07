@@ -1,0 +1,132 @@
+Requirement already satisfied: click>=8.0.0 in ./venv/lib/python3.11/site-packages (from typer-slim->transformers>=4.50.3->-r /workspace/ComfyUI/requirements.txt (line 10)) (8.3.1)
+Requirement already satisfied: annotated-doc>=0.0.2 in ./venv/lib/python3.11/site-packages (from typer-slim->transformers>=4.50.3->-r /workspace/ComfyUI/requirements.txt (line 10)) (0.0.4)
+
+[OK] ComfyUI requirements installed
+[INFO] Launching ComfyUI on port 3008...
+[OK] ComfyUI started on port 3008
+[INFO] ComfyUI should be available at: http://localhost:3008
+
+[INFO] Starting web server on port 3010...
+[INFO] Access the website at: http://localhost:3010
+[INFO] ComfyUI running on port 3008
+[INFO] ComfyUI API at: http://localhost:3008
+[INFO] Brain server at: http://localhost:8001
+
+[READY] All services started!
+INFO:     Started server process [25893]
+INFO:     Waiting for application startup.
+[API_SERVER] Job processing loop started
+[API_SERVER] Job processing loop started
+[JOB_MANAGER] Job processing loop started
+[JOB_MANAGER] Job processing loop started
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:3010 (Press CTRL+C to quit)
+INFO:     100.64.1.35:33562 - "GET / HTTP/1.1" 200 OK
+INFO:     100.64.1.36:51948 - "GET /assets/index-CWubOyEa.js HTTP/1.1" 200 OK
+INFO:     100.64.1.36:51954 - "GET /assets/index-qp0ih-Wh.css HTTP/1.1" 200 OK
+INFO:     100.64.1.34:60426 - "GET /favicon.ico HTTP/1.1" 200 OK
+[JOB_MANAGER] No active jobs, waiting...
+[JOB_MANAGER] No active jobs, waiting...
+[JOB_MANAGER] No active jobs, waiting...
+[JOB_MANAGER] No active jobs, waiting...
+[JOB_MANAGER] No active jobs, waiting...
+INFO:     100.64.1.34:50940 - "POST /api/upload HTTP/1.1" 200 OK
+INFO:     100.64.1.34:50940 - "POST /api/upload HTTP/1.1" 200 OK
+[JOB_MANAGER] No active jobs, waiting...
+INFO:     100.64.1.34:50940 - "POST /api/jobs HTTP/1.1" 200 OK
+[JOB_MANAGER] Job 2f8dd45d... state: RECEIVE_JOB
+[JOB_MANAGER] Job 2f8dd45d... RECEIVE_JOB → PERCEIVE
+[JOB_MANAGER] Job 2f8dd45d... state: PERCEIVE
+[JOB_MANAGER] Job 2f8dd45d... PERCEIVE: Calling brain server
+[JOB_MANAGER] Brain server URL: http://localhost:8001
+INFO:     100.64.1.33:47746 - "GET /api/agent/pending_action HTTP/1.1" 200 OK
+INFO:     100.64.1.33:47752 - "GET /api/agent/status HTTP/1.1" 200 OK
+[JOB_MANAGER] Brain server health check error: Expecting value: line 1 column 1 (char 0)
+[JOB_MANAGER] Job 2f8dd45d... PERCEIVE failed: Brain server not reachable at http://localhost:8001: Expecting value: line 1 column 1 (char 0)
+[JOB_MANAGER] Unexpected error, raising: Brain server not reachable at http://localhost:8001: Expecting value: line 1 column 1 (char 0)
+Traceback (most recent call last):
+  File "/workspace/orchestrator/job_manager.py", line 268, in _state_perceive
+    health_data = health_response.json()
+                  ^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/venv/lib/python3.11/site-packages/httpx/_models.py", line 832, in json
+    return jsonlib.loads(self.content, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/orchestrator/job_manager.py", line 207, in _process_job_state
+    await self._state_perceive(job_id, job)
+  File "/workspace/orchestrator/job_manager.py", line 274, in _state_perceive
+    raise Exception(f"Brain server not reachable at {brain_server_url}: {health_err}")
+Exception: Brain server not reachable at http://localhost:8001: Expecting value: line 1 column 1 (char 0)
+INFO:     100.64.1.32:45812 - "GET /api/agent/artifacts/2f8dd45d-7796-4340-9b1b-a5be19f4353f HTTP/1.1" 200 OK
+INFO:     100.64.1.33:47764 - "GET /api/agent/pending_action HTTP/1.1" 200 OK
+INFO:     100.64.1.33:47768 - "GET /api/agent/status HTTP/1.1" 200 OK
+INFO:     100.64.1.32:45828 - "GET /api/agent/artifacts/2f8dd45d-7796-4340-9b1b-a5be19f4353f HTTP/1.1" 200 OK
+INFO:     100.64.1.35:36808 - "GET /api/agent/pending_action HTTP/1.1" 200 OK
+INFO:     100.64.1.36:43718 - "GET /api/agent/status HTTP/1.1" 200 OK
+INFO:     100.64.1.35:36810 - "GET /api/agent/artifacts/2f8dd45d-7796-4340-9b1b-a5be19f4353f HTTP/1.1" 200 OK
+INFO:     100.64.1.35:36810 - "GET /api/agent/pending_action HTTP/1.1" 200 OK
+INFO:     100.64.1.36:58030 - "GET /api/agent/status HTTP/1.1" 200 OK
+INFO:     100.64.1.35:33778 - "GET /api/agent/artifacts/2f8dd45d-7796-4340-9b1b-a5be19f4353f HTTP/1.1" 200 OK
+INFO:     100.64.1.33:41800 - "GET /api/agent/pending_action HTTP/1.1" 200 OK
+INFO:     100.64.1.36:58038 - "GET /api/agent/status HTTP/1.1" 200 OK
+INFO:     100.64.1.35:33782 - "GET /api/agent/artifacts/2f8dd45d-7796-4340-9b1b-a5be19f4353f HTTP/1.1" 200 OK
+INFO:     100.64.1.33:41816 - "GET /api/agent/pending_action HTTP/1.1" 200 OK
+INFO:     100.64.1.36:58044 - "GET /api/agent/status HTTP/1.1" 200 OK
+INFO:     100.64.1.35:33786 - "GET /api/agent/artifacts/2f8dd45d-7796-4340-9b1b-a5be19f4353f HTTP/1.1" 200 OK
+INFO:     100.64.1.34:44302 - "GET /api/agent/pending_action HTTP/1.1" 200 OK
+INFO:     100.64.1.35:33794 - "GET /api/agent/status HTTP/1.1" 200 OK
+INFO:     100.64.1.35:33800 - "GET /api/agent/artifacts/2f8dd45d-7796-4340-9b1b-a5be19f4353f HTTP/1.1" 200 OK
+[JOB_MANAGER] No active jobs, waiting...
+
+
+what happened? give me a report - what is the issue. dont code!
+
+
+Issue report
+Problem: Brain server not responding
+What happened:
+Job submitted → moved to PERCEIVE state
+Job manager tried to call brain server at http://localhost:8001
+Health check failed with JSON decode error: Expecting value: line 1 column 1 (char 0)
+Job failed and moved to ERROR state
+Root cause:
+The brain server is not responding correctly. Possible reasons:
+Brain server not fully started
+Started in background (subprocess.Popen)
+Only checks if process exists after 3 seconds
+May not be listening on port 8001 yet
+Health check runs before the server is ready
+Brain server crashed silently
+Process may exist but crashed after startup
+stdout/stderr are captured (stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+Errors aren't visible in logs
+No brain server startup messages in logs
+Health endpoint returning non-JSON
+/health may return HTML error page or empty response
+JSON decode fails on empty/non-JSON response
+Evidence from logs:
+No brain server startup messages (no "[INFO] Loading brain models...")
+Health check gets empty response (JSON decode error)
+Job manager reports: "Brain server not reachable"
+What's missing:
+Brain server startup logs (stdout/stderr are captured, not shown)
+Verification that brain server is actually listening on port 8001
+Better error handling for brain server startup failures
+Fix needed:
+Check if brain server is actually listening on port 8001 (not just process exists)
+Show brain server stdout/stderr in logs
+Add retry logic with longer wait time for brain server to be ready
+Better error handling for health check failures
+The brain server process likely exists but isn't ready or has crashed silently.

@@ -1,0 +1,566 @@
+#!/usr/bin/env python3
+"""
+TTS Audio Suite - Engine Tables Generator
+Generates documentation tables from YAML source of truth.
+Also injects condensed table into README.md between markers.
+"""
+
+import yaml
+import re
+from pathlib import Path
+
+
+def load_data():
+    """Load YAML data"""
+    yaml_path = Path(__file__).parent.parent / "docs/Dev reports/tts_audio_suite_engines.yaml"
+    with open(yaml_path, encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def format_support(value, notes=""):
+    """Format boolean/partial support with optional notes"""
+    if value is None:
+        return "N/A"
+    elif value == "partial":
+        return f"⚠️ {notes}" if notes else "⚠️"
+    elif value is True:
+        return f"✅ {notes}" if notes else "✅"
+    else:
+        return "❌"
+
+
+def format_markdown_link(name, url):
+    """Format optional markdown link."""
+    if not name and not url:
+        return "-"
+    if url:
+        return f"[{name}]({url})" if name else f"[link]({url})"
+    return name
+
+
+def get_speed_emoji(speed_note):
+    """Convert speed note to emoji"""
+    if "Very Fast" in speed_note:
+        return "⚡⚡"
+    elif "Fast" in speed_note:
+        return "⚡"
+    else:
+        return "🐌"
+
+
+def generate_engine_comparison(data):
+    """Generate main engine comparison table"""
+    engines = data["engines"]
+
+    output = []
+    output.append("# TTS Engines Reference Tables")
+    output.append("")
+    output.append("## Engine Comparison")
+    output.append("")
+    output.append("| Engine             | Models                                    | Size         | TTS | SRT | VC  | ASR | License                  | Special Features                                                                         | Languages                                                                                |")
+    output.append("| ------------------ | ----------------------------------------- | ------------ | --- | --- | --- | --- | ------------------------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |")
+
+    for e in engines:
+        # Extract flags from languages
+        # Use Zero Width Space to prevent flag ligature issues
+        flags = "\u200B".join(
+            lang_data["flag"]
+            for lang_data in e["languages"].values()
+            if lang_data["supported"]
+        )
+
+        # Format special features with proper spacing
+        features = ", ".join(e.get("special_features", []))
+
+        # Handle ChatterBox 23L special case for languages display
+        if e["id"] == "chatterbox-23l":
+            flags += "(+9)"
+
+        row = [
+            f"**{e['name']}**".ljust(18),
+            e["models"].ljust(41),
+            e["size"].ljust(12),
+            format_support(e["capabilities"]["tts"]),
+            format_support(e["capabilities"]["srt"]),
+            format_support(e["capabilities"]["vc"]),
+            format_support(e["capabilities"]["asr"]),
+            e.get("license", "Unknown").ljust(24),
+            features.ljust(88),
+            flags.ljust(88)
+        ]
+
+        output.append("| " + " | ".join(row) + " |")
+
+    return "\n".join(output)
+
+
+def generate_readme_condensed_table(data):
+    """Generate condensed table for README.md"""
+    engines = data["engines"]
+
+    engine_count = len(engines)
+
+    output = []
+    output.append(f"## Quick Engine Comparison — {engine_count} Engines")
+    output.append("")
+    output.append("| Engine | Languages | Size | Key Features |")
+    output.append("|--------|-----------|------|--------------|")
+
+    # Show ALL engines
+    for e in engines:
+
+        # Get first 6-8 language flags
+        flags = []
+        count = 0
+        for lang_data in e["languages"].values():
+            if lang_data["supported"]:
+                flags.append(lang_data["flag"])
+                count += 1
+                if count >= 6:  # Limit to 6 flags for readability
+                    break
+
+        lang_display = "\u200B".join(flags)
+
+        # Special handling for ChatterBox 23L
+        if e["id"] == "chatterbox-23l":
+            lang_display = "🌐 24 languages"
+        # Special handling for RVC
+        elif e["id"] == "rvc":
+            lang_display = "🌐 Any"
+        else:
+            # Add count if more languages exist
+            total_langs = sum(1 for ld in e["languages"].values() if ld["supported"])
+            if total_langs > 6:
+                lang_display += f" +{total_langs - 6}"
+
+        # Get 1-2 key features
+        special_features = e.get("special_features", [])
+        if len(special_features) > 2:
+            key_features = ", ".join(special_features[:2])
+        else:
+            key_features = ", ".join(special_features)
+
+        row = [
+            f"**{e['name']}**",
+            lang_display,
+            e["size"],
+            key_features
+        ]
+
+        output.append("| " + " | ".join(row) + " |")
+
+    # Add footer with links
+    output.append("")
+    output.append("📊 **[Full comparison tables →](docs/ENGINE_COMPARISON.md)** | "
+                  "**[Language matrix →](docs/LANGUAGE_SUPPORT.md)** | "
+                  "**[Feature matrix →](docs/FEATURE_COMPARISON.md)** | "
+                  "**[Model download sources →](docs/MODEL_DOWNLOAD_SOURCES.md)** | "
+                  "**[Model folder layouts →](docs/MODEL_LAYOUTS.md)**")
+    output.append("")
+    output.append("*Note: These tables are generated automatically from source: [tts_audio_suite_engines.yaml](docs/Dev%20reports/tts_audio_suite_engines.yaml)*")
+
+    return "\n".join(output)
+
+
+def generate_model_download_sources(data):
+    """Generate model download sources table grouped by engine."""
+    engines = data["engines"]
+
+    output = []
+    output.append("# Model Download Sources")
+    output.append("")
+    output.append("All entries below are generated from the single source of truth YAML.")
+    output.append("Use this as the canonical list of model repositories/links for offline setup.")
+    output.append("")
+
+    for engine in engines:
+        sources = engine.get("model_sources", [])
+        if not sources:
+            continue
+
+        output.append(f"## {engine['name']}")
+        output.append("")
+        output.append("| Component | Source | Size | Auto-Download | Notes |")
+        output.append("|---|---|---|---|---|")
+
+        for source in sources:
+            component = source.get("component", "-")
+            source_name = source.get("source_name", "")
+            source_url = source.get("source_url", "")
+            source_display = format_markdown_link(source_name, source_url)
+            size = source.get("size", "-")
+            auto_download = format_support(source.get("auto_download"))
+            notes = source.get("notes", "")
+
+            output.append(
+                f"| {component} | {source_display} | {size} | {auto_download} | {notes} |"
+            )
+
+        output.append("")
+
+    output.append("*Generated from [tts_audio_suite_engines.yaml](Dev%20reports/tts_audio_suite_engines.yaml).*")
+    return "\n".join(output)
+
+
+def generate_readme_model_download_table(data):
+    """Generate README auto-download summary table from YAML source."""
+    rows = data.get("readme_model_download_table", [])
+
+    output = []
+    output.append("| Engine | Primary model path | Auto-download | Notes |")
+    output.append("|---|---|---|---|")
+
+    for row in rows:
+        engine = row.get("engine", "-")
+        path = row.get("primary_model_path", "-")
+        auto_download = row.get("auto_download", "N/A")
+        notes = row.get("notes", "")
+        output.append(f"| {engine} | `{path}` | {auto_download} | {notes} |")
+
+    output.append("")
+    output.append("*Generated from [tts_audio_suite_engines.yaml](docs/Dev%20reports/tts_audio_suite_engines.yaml).*")
+    return "\n".join(output)
+
+
+def generate_model_layouts(data):
+    """Generate model layout documentation from YAML source."""
+    model_layouts_markdown = data.get("model_layouts_markdown", "")
+    if model_layouts_markdown:
+        return model_layouts_markdown.strip() + "\n"
+
+    # Fallback so the file is still generated even without YAML content.
+    output = []
+    output.append("# Model Folder Layouts")
+    output.append("")
+    output.append("No model layout data found in YAML source.")
+    output.append("")
+    output.append("Populate `model_layouts_markdown` in `docs/Dev reports/tts_audio_suite_engines.yaml`.")
+    return "\n".join(output)
+
+
+def generate_language_support(data):
+    """Generate language support matrix"""
+    engines = data["engines"]
+    lang_meta = data["language_metadata"]
+
+    # Get all language codes in order
+    lang_codes = list(lang_meta.keys())
+
+    output = []
+    output.append("# Language Support by Engine")
+    output.append("")
+    output.append("## Language Support by Engine")
+    output.append("")
+
+    # Build header
+    header = "| Language       | Code |"
+    separator = "|---|---|"
+    for e in engines:
+        header += f" {e['name']} |"
+        separator += "---|"
+
+    output.append(header)
+    output.append(separator)
+
+    # Build rows for each language
+    for lang_code in lang_codes:
+        lang_info = lang_meta[lang_code]
+        # Get flag from first engine's language data (all have same flag)
+        flag = engines[0]["languages"][lang_code]["flag"]
+
+        row = [
+            f"{flag} **{lang_info['name']}**".ljust(14),
+            lang_info['code'].ljust(4)
+        ]
+
+        for e in engines:
+            lang_support = e["languages"][lang_code]
+            cell = format_support(lang_support["supported"], lang_support["notes"])
+            row.append(cell)
+
+        output.append("| " + " | ".join(row) + " |")
+
+    # Add notes
+    output.append("")
+    output.append("**Notes:**")
+    output.append("")
+    for note in data["table_notes"]["language_support"]:
+        output.append(f"- {note}")
+
+    return "\n".join(output)
+
+
+def generate_feature_comparison(data):
+    """Generate feature comparison matrix"""
+    engines = data["engines"]
+    feat_meta = data["feature_metadata"]
+
+    output = []
+    output.append("# Feature Comparison Matrix")
+    output.append("")
+    output.append("## Feature Comparison Matrix")
+    output.append("")
+
+    # Build header
+    header = "| Feature                      |"
+    separator = "|---|"
+    for e in engines:
+        header += f" {e['name']} |"
+        separator += "---|"
+
+    output.append(header)
+    output.append(separator)
+
+    # Build rows for each feature
+    for feat_key, feat_info in feat_meta.items():
+        row = [feat_info["display"].ljust(28)]
+
+        for e in engines:
+            feat_support = e["features"][feat_key]
+            cell = format_support(feat_support["supported"], feat_support["notes"])
+            row.append(cell)
+
+        output.append("| " + " | ".join(row) + " |")
+
+    return "\n".join(output)
+
+
+def generate_license_table(data):
+    """Generate model licenses summary table for LICENSE file (plain text)"""
+    engines = data["engines"]
+
+    commercial_map = {
+        True: "Yes",
+        False: "No",
+        "conditional": "Conditional",
+        "varies": "Varies",
+    }
+
+    rows = []
+    for e in engines:
+        license_str = e.get("license", "Unknown")
+        commercial = e.get("commercial", "varies")
+        commercial_str = commercial_map.get(commercial, "Unknown")
+        rows.append((e["name"], license_str, commercial_str))
+
+    # Calculate column widths
+    col1 = max(len("Engine"), max(len(r[0]) for r in rows))
+    col2 = max(len("License"), max(len(r[1]) for r in rows))
+    col3 = max(len("Commercial Use"), max(len(r[2]) for r in rows))
+
+    sep = f"  {'─' * col1}  {'─' * col2}  {'─' * col3}"
+    header = f"  {'Engine':<{col1}}  {'License':<{col2}}  {'Commercial Use':<{col3}}"
+
+    output = []
+    output.append("Third-Party Model Licenses")
+    output.append("──────────────────────────")
+    output.append("")
+    output.append("The project code is MIT. Model weights carry their own licenses:")
+    output.append("")
+    output.append(sep)
+    output.append(header)
+    output.append(sep)
+    for name, lic, com in rows:
+        output.append(f"  {name:<{col1}}  {lic:<{col2}}  {com:<{col3}}")
+    output.append(sep)
+    output.append("")
+    output.append("Users are responsible for complying with respective model licenses.")
+
+    return "\n".join(output)
+
+
+def inject_into_license(license_table):
+    """Inject license table into LICENSE file after the '---' separator. Returns: True=written, False=unchanged, None=error"""
+    license_path = Path(__file__).parent.parent / "LICENSE"
+
+    with open(license_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    separator = "\n---\n"
+    sep_idx = content.find(separator)
+    if sep_idx == -1:
+        print("⚠️  '---' separator not found in LICENSE")
+        return None
+
+    mit_section = content[: sep_idx + len(separator)]
+    new_content = mit_section + "\n" + license_table + "\n"
+
+    if new_content == content:
+        return False
+
+    with open(license_path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+
+    return True
+
+
+def inject_into_readme(condensed_table):
+    """Inject condensed table into README.md between markers. Returns: True=written, False=unchanged, None=error"""
+    readme_path = Path(__file__).parent.parent / "README.md"
+
+    # Read current README
+    with open(readme_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Define markers
+    start_marker = "<!-- ENGINE_COMPARISON_START -->"
+    end_marker = "<!-- ENGINE_COMPARISON_END -->"
+
+    # Check if markers exist
+    if start_marker not in content or end_marker not in content:
+        print("⚠️  Markers not found in README.md")
+        print(f"   Please add these markers where you want the table:")
+        print(f"   {start_marker}")
+        print(f"   {end_marker}")
+        return None  # Error
+
+    # Replace content between markers
+    pattern = f"{re.escape(start_marker)}.*?{re.escape(end_marker)}"
+    replacement = f"{start_marker}\n\n{condensed_table}\n\n{end_marker}"
+
+    new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+
+    # Check if content actually changed
+    if new_content == content:
+        return False  # No change
+
+    # Write back only if changed
+    with open(readme_path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+
+    return True  # Written
+
+
+def inject_section_into_readme(section_body, start_marker, end_marker):
+    """Inject generated content into README.md between custom markers."""
+    readme_path = Path(__file__).parent.parent / "README.md"
+
+    with open(readme_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    if start_marker not in content or end_marker not in content:
+        print("⚠️  Markers not found in README.md")
+        print(f"   Please add these markers where you want the table:")
+        print(f"   {start_marker}")
+        print(f"   {end_marker}")
+        return None
+
+    pattern = f"{re.escape(start_marker)}.*?{re.escape(end_marker)}"
+    replacement = f"{start_marker}\n\n{section_body}\n\n{end_marker}"
+    new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+
+    if new_content == content:
+        return False
+
+    with open(readme_path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+
+    return True
+
+
+def write_if_changed(file_path, new_content):
+    """Write file only if content changed. Returns True if written."""
+    # Check if file exists and compare content
+    if file_path.exists():
+        with open(file_path, "r", encoding="utf-8") as f:
+            existing_content = f.read()
+
+        if existing_content == new_content:
+            return False  # No change needed
+
+    # Write the file
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+    return True  # File was written
+
+
+def main():
+    """Generate all tables and optionally inject into README"""
+    import sys
+
+    data = load_data()
+    docs_dir = Path(__file__).parent.parent / "docs"
+
+    # Generate Engine Comparison
+    print("Generating Engine Comparison table...")
+    engine_comp = generate_engine_comparison(data)
+    if write_if_changed(docs_dir / "ENGINE_COMPARISON.md", engine_comp):
+        print(f"✅ Written to {docs_dir / 'ENGINE_COMPARISON.md'}")
+    else:
+        print(f"⏭️  Skipped {docs_dir / 'ENGINE_COMPARISON.md'} (unchanged)")
+
+    # Generate Language Support
+    print("Generating Language Support table...")
+    lang_support = generate_language_support(data)
+    if write_if_changed(docs_dir / "LANGUAGE_SUPPORT.md", lang_support):
+        print(f"✅ Written to {docs_dir / 'LANGUAGE_SUPPORT.md'}")
+    else:
+        print(f"⏭️  Skipped {docs_dir / 'LANGUAGE_SUPPORT.md'} (unchanged)")
+
+    # Generate Feature Comparison
+    print("Generating Feature Comparison table...")
+    feat_comp = generate_feature_comparison(data)
+    if write_if_changed(docs_dir / "FEATURE_COMPARISON.md", feat_comp):
+        print(f"✅ Written to {docs_dir / 'FEATURE_COMPARISON.md'}")
+    else:
+        print(f"⏭️  Skipped {docs_dir / 'FEATURE_COMPARISON.md'} (unchanged)")
+
+    # Generate Model Download Sources
+    print("Generating Model Download Sources table...")
+    model_sources = generate_model_download_sources(data)
+    if write_if_changed(docs_dir / "MODEL_DOWNLOAD_SOURCES.md", model_sources):
+        print(f"✅ Written to {docs_dir / 'MODEL_DOWNLOAD_SOURCES.md'}")
+    else:
+        print(f"⏭️  Skipped {docs_dir / 'MODEL_DOWNLOAD_SOURCES.md'} (unchanged)")
+
+    # Generate Model Layouts
+    print("Generating Model Folder Layouts doc...")
+    model_layouts = generate_model_layouts(data)
+    if write_if_changed(docs_dir / "MODEL_LAYOUTS.md", model_layouts):
+        print(f"✅ Written to {docs_dir / 'MODEL_LAYOUTS.md'}")
+    else:
+        print(f"⏭️  Skipped {docs_dir / 'MODEL_LAYOUTS.md'} (unchanged)")
+
+    # Generate and inject license table into LICENSE file
+    print("Generating model licenses table...")
+    license_table = generate_license_table(data)
+    result = inject_into_license(license_table)
+    if result is True:
+        print("✅ LICENSE updated successfully!")
+    elif result is False:
+        print("⏭️  Skipped LICENSE (unchanged)")
+    else:
+        print("❌ LICENSE injection failed (markers not found)")
+
+    # Generate and inject condensed README table
+    print("\nGenerating condensed README table...")
+    condensed = generate_readme_condensed_table(data)
+    print("Generating README model auto-download table...")
+    readme_model_table = generate_readme_model_download_table(data)
+
+    # Check if --readme flag is passed
+    if "--readme" in sys.argv:
+        print("Injecting into README.md...")
+        condensed_result = inject_into_readme(condensed)
+        model_table_result = inject_section_into_readme(
+            readme_model_table,
+            "<!-- README_MODEL_DOWNLOAD_TABLE_START -->",
+            "<!-- README_MODEL_DOWNLOAD_TABLE_END -->",
+        )
+
+        if condensed_result is None or model_table_result is None:
+            print("❌ README.md injection failed (markers not found)")
+        elif condensed_result is True or model_table_result is True:
+            print("✅ README.md updated successfully!")
+        else:
+            print("⏭️  Skipped README.md (unchanged)")
+    else:
+        print("ℹ️  Condensed table generated (use --readme flag to inject into README.md)")
+        print("\nPreview:")
+        print(condensed)
+
+    print("\n✅ All tables generated successfully!")
+
+
+if __name__ == "__main__":
+    main()

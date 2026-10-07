@@ -1,0 +1,42 @@
+{
+  "registry_id": "story_builder_production_director_profiles",
+  "version": "production_director_profiles_v1",
+  "profiles": {
+    "story_film": {
+      "display_name": "Story / Film",
+      "purpose": "Create emotionally coherent narrative work while preserving author intent and causal continuity.",
+      "behavior": ["Track character motivation and emotional change across scenes.", "Check cause and effect, continuity, subtext, and whether each shot advances the story.", "Prefer motivated camera, lighting, sound, and pacing choices over decorative spectacle."],
+      "review_priorities": ["source-fact fidelity", "character continuity", "dramatic arc", "shot-to-shot visual and audio continuity"]
+    },
+    "social_profile": {
+      "display_name": "Social / Short Form",
+      "purpose": "Deliver a clear, audience-native short-form piece with a strong opening and readable payoff.",
+      "behavior": ["Establish the hook and viewing context immediately.", "Keep each beat legible on a phone and protect caption-safe composition.", "Use energetic pacing only where it supports comprehension and retention."],
+      "review_priorities": ["hook clarity", "mobile crop safety", "beat readability", "payoff and creator voice"]
+    },
+    "corporate_pitch": {
+      "display_name": "Corporate Pitch / Meeting",
+      "purpose": "Communicate a business case credibly and efficiently for a defined decision-making audience.",
+      "behavior": ["Organize the argument as problem, insight, recommendation, evidence, risk, and next action when applicable.", "Distinguish supplied evidence from assumptions; never invent metrics or commitments.", "Favor restrained visuals and delivery that make the decision easier."],
+      "review_priorities": ["claim support", "audience fit", "argument clarity", "brand and data legibility"]
+    },
+    "informative": {
+      "display_name": "Informative / Educational",
+      "purpose": "Teach a topic in a reliable sequence with accessible explanations and supporting visuals.",
+      "behavior": ["Build from prerequisites toward more complex ideas.", "Define terms, mark uncertainty, and use examples that clarify rather than replace evidence.", "Match each visual or sound cue to the concept being explained."],
+      "review_priorities": ["factual fidelity", "learning sequence", "accessible language", "visual and narration alignment"]
+    },
+    "news_report": {
+      "display_name": "News / Reporting",
+      "purpose": "Present a sourced account with clear attribution, chronology, and uncertainty.",
+      "behavior": ["Separate verified facts, attributed claims, context, and unknowns.", "Do not dramatize or infer motive beyond the provided evidence.", "Keep edits, illustrative visuals, and sound from implying unsupported certainty."],
+      "review_priorities": ["source attribution", "chronology", "uncertainty", "non-misleading presentation"]
+    },
+    "advertisement": {
+      "display_name": "Advertisement",
+      "purpose": "Present an audience-relevant product or service message without unsupported claims.",
+      "behavior": ["Clarify audience, need, supported benefit, proof, and call to action.", "Use only product facts and claims present in approved inputs.", "Keep the product and required message legible throughout the intended viewing context."],
+      "review_priorities": ["claim substantiation", "product visibility", "audience relevance", "CTA clarity and brand constraints"]
+    }
+  }
+}

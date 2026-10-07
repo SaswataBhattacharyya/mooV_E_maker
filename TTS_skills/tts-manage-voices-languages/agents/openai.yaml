@@ -1,0 +1,4 @@
+interface:
+  display_name: "TTS Manage Voices Languages"
+  short_description: "Manage TTS voices and language aliases"
+  default_prompt: "Use $tts-manage-voices-languages to organize these voices, aliases, transcripts, and language defaults."

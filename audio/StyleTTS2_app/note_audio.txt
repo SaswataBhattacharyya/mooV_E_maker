@@ -1,0 +1,150 @@
+More like reference voice (stable narrator):
+
+alpha=0.1–0.3, beta=0.3–0.6
+
+More expressive / acted:
+
+alpha=0.3–0.6, beta=0.7–1.0
+
+
+
+10) For characters + styles: what’s the best workflow?
+
+For audiobooks, the most robust approach is:
+
+Keep one neutral reference per character:
+
+Sas_neutral.wav, Max_neutral.wav
+
+Keep extra reference clips per emotion if you want:
+
+Max_angry.wav, Max_sad.wav
+
+For each dialogue line:
+
+pick character ref
+
+set beta higher for emotional lines
+
+optionally switch to emotional ref clip
+
+This gives you control without needing to label everything during training.
+
+
+
+8) How many audio+text pairs do I need?
+
+There’s no single “magic number”, but here’s a realistic guide:
+
+Minimal test (“does it work at all?”)
+
+50–200 clips (~5–20 minutes)
+This is like the finetune demo scale.
+
+Useful single-voice quality
+
+500–2000 clips (~1–3 hours) of clean voice
+
+consistent mic, low noise
+
+Strong emotional range (angry/sad/happy etc.)
+
+Prefer separate style sets, e.g.:
+
+30–60 minutes per style
+
+Or at least a few hundred lines per emotion if you want reliable control.
+
+If you only want zero-shot + a slight accent shift, you need less.
+If you want the model to “be Sas” by default without reference, you need more.
+
+
+You are an expert Python + PyTorch engineer. I have cloned StyleTTS2 here:
+
+/home/saswata/web_dev/video maker/audio/StyleTTS2
+
+Read the repo README and inspect the training / finetune / dataset code in the repo (search for train, finetune, Dataset, filelist, config, yaml, json, Librispeech/LibriTTS, Demo/FineTune, notebooks, scripts). Based on the repo’s actual expected format, write working code (not pseudocode) to:
+
+A) Preprocess
+
+Create preprocess_dataset.py that asks (CLI args) for:
+
+--data_root : root folder containing two subfolders:
+
+audio/ with files {Speaker}_a1.mp3, {Speaker}_a2.mp3, ...
+
+text/ with matching {Speaker}_a1.txt, {Speaker}_a2.txt, ...
+
+--work_dir : output preprocessing directory
+
+--sr (default to what StyleTTS2 expects; decide by reading configs)
+
+--val_ratio (default 0.05)
+
+Tasks:
+
+Match audio/text pairs by stem.
+
+Convert mp3→wav mono, resample to --sr, 16-bit PCM.
+
+Clean text (strip, normalize whitespace).
+
+Create a manifest.csv with columns: utt_id,speaker,wav_path,text
+
+Split per speaker into train/val.
+
+Write filelists in the exact format the StyleTTS2 repo training/finetune expects (infer from repo code), e.g. {work_dir}/filelists/{speaker}_train.txt and {speaker}_val.txt.
+
+B) Fine-tune
+
+Create finetune_multi.py that asks (CLI args) for:
+
+--styletts2_repo "/home/saswata/web_dev/video maker/audio/StyleTTS2"
+
+--work_dir (from preprocess output)
+
+--out_dir
+
+--base_checkpoint (pretrained .pth)
+
+--base_config (template config path from repo)
+
+--speakers optional comma-separated (else auto-detect from manifest)
+
+training params: --lr, --batch_size, --max_steps (or epochs), --seed
+
+Tasks:
+
+For each speaker, create an output run folder: {out_dir}/{speaker}/
+
+Generate a speaker-specific config derived from --base_config pointing to that speaker’s train/val filelists + output folder + resume from --base_checkpoint.
+
+Invoke the actual training entrypoint used by this repo (script or python function). Do NOT invent commands—find the correct one in the repo.
+
+Save final checkpoint as: {out_dir}/{speaker}/styletts2_{speaker}.pth
+
+Save the config copy used: {out_dir}/{speaker}/config_{speaker}.yml (or json)
+
+C) Requirements
+
+Also output a requirements_finetune.txt that is minimal and avoids strict pins that break CUDA/torch already installed. Do not pin torch/cuda. Only list required libs.
+
+D) Usability
+
+Scripts must be runnable on Linux/Colab.
+
+Print clear progress + counts per speaker.
+
+Add --dry_run to preprocess: only validate pairs & show stats.
+
+Handle missing pairs gracefully (skip + report).
+
+Return the full code for:
+
+preprocess_dataset.py
+
+finetune_multi.py
+
+requirements_finetune.txt
+
+Example commands to run both.

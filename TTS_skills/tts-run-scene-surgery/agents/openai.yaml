@@ -1,0 +1,4 @@
+interface:
+  display_name: "TTS Run Scene Surgery"
+  short_description: "Split, edit, and reassemble scene audio"
+  default_prompt: "Use $tts-run-scene-surgery to split, selectively edit, and safely reassemble this scene audio."

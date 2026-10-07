@@ -1,0 +1,6 @@
+{
+  "1": {"class_type": "LoadAudio", "inputs": {"audio": ""}},
+  "2": {"class_type": "VocalRemovalNode", "inputs": {"audio": ["1", 0], "model": "UVR/UVR-DeNoise.pth", "use_cache": true, "aggressiveness": 10, "format": "flac"}},
+  "3": {"class_type": "SaveAudioAdvanced", "inputs": {"audio": ["2", 1], "filename_prefix": "story_builder/audio", "format": "flac"}},
+  "4": {"class_type": "SaveAudioAdvanced", "inputs": {"audio": ["2", 0], "filename_prefix": "story_builder/audio_removed", "format": "flac"}}
+}

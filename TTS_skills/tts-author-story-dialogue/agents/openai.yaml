@@ -1,0 +1,4 @@
+interface:
+  display_name: "TTS Author Story Dialogue"
+  short_description: "Author timed character dialogue packages"
+  default_prompt: "Use $tts-author-story-dialogue to turn this story into timed multi-character SRT and edit instructions."

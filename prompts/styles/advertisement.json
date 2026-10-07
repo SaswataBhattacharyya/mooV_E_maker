@@ -1,0 +1,15 @@
+{
+  "style_id": "advertisement",
+  "name": "Advertisement",
+  "version": 1,
+  "description": "Brand-safe, concise product storytelling with a clear hook and call to action.",
+  "stages": {
+    "story": "Find the audience problem, promise, proof and call to action without inventing product claims.",
+    "scene_direction": "Prioritize immediate visual hierarchy, product readability, brand palette, hook timing and CTA placement.",
+    "image": "Keep the product legible, hero-lit and compositionally dominant with clean brand-safe backgrounds.",
+    "audio": "Use a memorable, energetic or trustworthy delivery; align music hits and effects with product reveals.",
+    "video": "Use clean purposeful motion, product focus and short readable beats; never obscure the product or text.",
+    "review": "Check brand consistency, claim support, product visibility, readability and CTA timing."
+  },
+  "analysis": {"tone": ["clear", "persuasive"], "camera_priority": "product readability", "pacing": "hook-first"}
+}

@@ -1,0 +1,22 @@
+# Core dependencies
+numpy>=1.20.0
+scipy>=1.7.0
+pandas>=1.3.0
+
+# Audio processing
+soundfile>=0.10.0
+librosa>=0.9.0
+
+# Progress and utilities
+tqdm>=4.62.0
+pyyaml>=5.4.0
+
+# Deep learning (for Demucs and raga model)
+torch>=1.10.0
+torchaudio>=0.10.0
+
+# Optional: Essentia (install separately if pip install fails)
+# essentia>=2.1.0
+
+# Optional: Demucs for vocal separation
+demucs>=3.0.0

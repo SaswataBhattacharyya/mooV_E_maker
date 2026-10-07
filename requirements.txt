@@ -1,0 +1,7 @@
+fastapi>=0.116.0
+uvicorn>=0.35.0
+pydantic>=2.11.0
+streamlit>=1.31.0
+urllib3>=2.0.0
+python-doctr>=1.1.0
+lancedb>=0.20.0

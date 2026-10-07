@@ -1,0 +1,20 @@
+# Dedicated audio-analysis overlay. It derives from the already-tested PE-AV
+# analyzer image. Package changes exist only in this child image; the parent
+# image, ComfyUI image, and all host Conda environments remain unchanged.
+FROM video-audio-analyzer-peav:dev
+
+USER root
+COPY docker/audio-worker-constraints.txt /tmp/audio-worker-constraints.txt
+RUN python3 -m pip install --no-cache-dir --constraint /tmp/audio-worker-constraints.txt \
+       nemo_toolkit[asr]==3.0.0 \
+       laion-clap==1.1.7 \
+       fastapi==0.115.12 \
+       uvicorn==0.34.2 \
+       python-multipart==0.0.20 \
+    && python3 -c 'import torch; assert torch.__version__ == "2.11.0+cu130", torch.__version__; import nemo.collections.asr.models; import laion_clap; import fastapi, uvicorn, multipart; print("audio worker imports and pinned CUDA torch ready")'
+
+ENV PYTHONPATH=/app/src:/opt/perception_models
+ENV VIDEO_AUDIO_ANALYZER_VOICE_STORE_ENABLE_LANCEDB=1
+WORKDIR /app
+EXPOSE 8031
+ENTRYPOINT ["python3", "-m", "uvicorn", "video_audio_analyzer.audio_worker:app", "--host", "0.0.0.0", "--port", "8031"]

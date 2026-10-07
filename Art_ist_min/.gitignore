@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+venv/
+ComfyUI/
+fix/
+kritaai_novita.md
+*.zip
+*.mov
+username.env
+bare_min_links.md
+openclaw/support/
+openclaw/state/

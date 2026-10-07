@@ -1,0 +1,12 @@
+{
+  "219": {"class_type": "CLIPLoader", "inputs": {"clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors", "type": "qwen_image", "device": "default"}},
+  "220": {"class_type": "VAELoader", "inputs": {"vae_name": "qwen_image_vae.safetensors"}},
+  "226": {"class_type": "UNETLoader", "inputs": {"unet_name": "qwen_image_2512_bf16.safetensors", "weight_dtype": "default"}},
+  "227": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["219", 0], "text": ""}},
+  "228": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["219", 0], "text": "low quality, deformed hands, extra limbs, broken anatomy, malformed objects"}},
+  "232": {"class_type": "EmptySD3LatentImage", "inputs": {"width": 1664, "height": 928, "batch_size": 1}},
+  "222": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["226", 0], "shift": 3.1}},
+  "230": {"class_type": "KSampler", "inputs": {"model": ["222", 0], "positive": ["227", 0], "negative": ["228", 0], "latent_image": ["232", 0], "seed": 0, "steps": 50, "cfg": 4, "sampler_name": "euler", "scheduler": "simple", "denoise": 1}},
+  "231": {"class_type": "VAEDecode", "inputs": {"samples": ["230", 0], "vae": ["220", 0]}},
+  "60": {"class_type": "SaveImage", "inputs": {"images": ["231", 0], "filename_prefix": "Qwen-Image-2512"}}
+}

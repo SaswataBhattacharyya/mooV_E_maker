@@ -1,0 +1,5 @@
+# Minimal extras for preprocessing/finetune orchestration
+pyyaml
+torchaudio
+tqdm
+

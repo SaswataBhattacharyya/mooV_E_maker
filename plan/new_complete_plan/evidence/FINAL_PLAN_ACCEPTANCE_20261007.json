@@ -1,0 +1,94 @@
+{
+  "status": "passed",
+  "date": "2026-10-07T02:30:41.360883+00:00",
+  "scope": "Original upgrade: required implemented paths and representative real acceptance; excludes optional unverified models and rendering every planned shot",
+  "release_manifests": {
+    "D5_RELEASE_20261006.json": {
+      "status": "passed",
+      "manifest_sha256": "956a97aecce2b07e0fe99a78ea73f13eb75a3f493138a890e89109e65896eb84"
+    },
+    "FULL_DIRECT_ACCEPTANCE_20261006.json": {
+      "status": "passed",
+      "manifest_sha256": "dc2b62e8ebf643ca047816e34545f81d47df94c8f279a56e1c1b107275a3f54f"
+    },
+    "FULL_REFERENCE_ACCEPTANCE_20261006.json": {
+      "status": "passed",
+      "manifest_sha256": "934c649808773ceb7b95966c30fe404f01901f42348888f5eb9f10501ba80b4e"
+    }
+  },
+  "reverified_native_clips": [
+    {
+      "path": "/home/riki/web_dev/story_builder/output/disposable-d5-two-scene-continuity-acceptance-2026-10-05-dedfec5c/production_v2/runs/65d3884b-0a07-4da6-9d02-21db48921336/shots/cut-01/takes/e275ffa5-0972-5762-b26e-2d2577efe26f/attempt-1/db1c87a66f9449dc90c7919061ae8bfe_cut-01_00002_.mp4",
+      "sha256": "9b1d685726a7449ad6fbc187ff638958455014052423df797237a27b6e5edaf7",
+      "duration_seconds": 5.167,
+      "native_av": true
+    },
+    {
+      "path": "/home/riki/web_dev/story_builder/output/disposable-d5-two-scene-continuity-acceptance-2026-10-05-dedfec5c/production_v2/runs/65d3884b-0a07-4da6-9d02-21db48921336/shots/cut-02/takes/c76c5a53-445c-5108-831e-ca5a99b442f9/attempt-1/9ed2b2552fb345bdb6fa31a5a3fdbf07_cut-02_00003_.mp4",
+      "sha256": "105cdf67f90ecd3785df696af606a786960920563c511b8241ff39310ed7b742",
+      "duration_seconds": 5.167,
+      "native_av": true
+    },
+    {
+      "path": "/home/riki/web_dev/story_builder/output/disposable-d5-two-scene-continuity-acceptance-2026-10-05-dedfec5c/production_v2/runs/65d3884b-0a07-4da6-9d02-21db48921336/shots/cut-03/takes/06ad5392-cff7-537d-92d4-19bcc13cfbf2/attempt-1/1c6222baf4dc477a8a433798d89c1e1d_cut-03_00001_.mp4",
+      "sha256": "6c94d2a6322b995d6b436baf2da6e874901fe32e1b43f7430f2891426f02cf1c",
+      "duration_seconds": 5.167,
+      "native_av": true
+    },
+    {
+      "path": "/home/riki/web_dev/story_builder/output/disposable-full-text-acceptance-clear-two-scene-story-d7b63a8e/production_v2/runs/399d90f1-6286-42f8-b79c-d4ec76609fea/shots/shot-001-01/takes/13619140-8a17-55fa-9580-a11b39bf6d35/attempt-1/462f63a3e4d3496898dab3b3f0aad092_shot-001-01_00001_.mp4",
+      "sha256": "35a498cba763a634072307816ba03221b2a46f1f152716120ac2d4151ed36420",
+      "duration_seconds": 8.0,
+      "native_av": true
+    },
+    {
+      "path": "/tmp/storybuilder-full-controller-acceptance-20261006-nlmgwm4y/output/disposable-full-controller-provider-resume-acceptance-a7321ab5/production_v2/runs/cbac5b4a-41f8-440a-a0fb-a8698a0de2d4/shots/shot-001-01/takes/86da118e-91a6-59a1-aca2-c36e7e6dfa61/attempt-1/833c9409cb04482dbeeb97d6c68f04ff_shot-001-01_00002_.mp4",
+      "sha256": "9de2de0ad1bfcb7f7eb03580a74549f2e7a7c3e2f6ad86ebd5264968115b11b0",
+      "duration_seconds": 8.0,
+      "native_av": true
+    }
+  ],
+  "normal_services": {
+    "api": {
+      "http_status": 200
+    },
+    "frontend": {
+      "http_status": 200
+    },
+    "comfy_queue": {
+      "http_status": 200,
+      "running": 0,
+      "pending": 0
+    }
+  },
+  "navigation_persistent": true,
+  "tests": {
+    "backend": 803,
+    "frontend_unit": 14,
+    "maintained_browser": {
+      "passed": 24,
+      "skipped": 8,
+      "skip_note": "Opt-in real specs have separately retained actual acceptance; flag-off separately tested"
+    },
+    "isolated_real_navigation": 4,
+    "normal_site_navigation": 2,
+    "lint_errors": 0,
+    "lint_existing_warnings": 13,
+    "typecheck_build": "passed"
+  },
+  "gpu": {
+    "new_renders_this_completion": 0,
+    "recorded_release_peak_celsius": 82,
+    "intervention_celsius": 83,
+    "maximum_celsius": 85,
+    "operator_clock_ceiling_mhz": 2100
+  },
+  "optional_unverified": [
+    "FL2VA",
+    "MiniMaxH3AddGuide / Fun ControlNet unavailable",
+    "hosted cloning remains separately gated"
+  ],
+  "backups": [
+    "/tmp/storybuilder_final_release_docs_preedit_20261007.tgz"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "1": {
+    "class_type": "VibeVoiceEngineNode",
+    "inputs": {
+      "model": "local:vibevoice-1.5B",
+      "device": "cuda",
+      "quantize_llm_4bit": false,
+      "attention_mode": "auto",
+      "multi_speaker_mode": "Native Multi-Speaker",
+      "cfg_scale": 3.0,
+      "inference_steps": 3,
+      "use_sampling": false,
+      "temperature": 0.95,
+      "top_p": 0.95,
+      "chunk_minutes": 0,
+      "max_new_tokens": 0
+    }
+  },
+  "2": {
+    "class_type": "CharacterVoicesNode",
+    "inputs": {
+      "voice_name": "none",
+      "reference_text": "",
+      "opt_audio_input": ["5", 0]
+    }
+  },
+  "3": {
+    "class_type": "UnifiedTTSSRTNode",
+    "inputs": {
+      "TTS_engine": ["1", 0],
+      "srt_content": "",
+      "narrator_voice": "none",
+      "seed": 42,
+      "timing_mode": "smart_natural",
+      "opt_narrator": ["2", 0],
+      "batch_size": 0
+    }
+  },
+  "4": {
+    "class_type": "SaveAudioAdvanced",
+    "inputs": {
+      "audio": ["3", 0],
+      "filename_prefix": "story_builder/production_dialogue",
+      "format": "flac"
+    }
+  },
+  "5": {"class_type": "LoadAudio", "inputs": {"audio": "voice_s1.wav"}},
+  "6": {"class_type": "LoadAudio", "inputs": {"audio": "voice_s2.wav"}},
+  "7": {"class_type": "LoadAudio", "inputs": {"audio": "voice_s3.wav"}},
+  "8": {"class_type": "LoadAudio", "inputs": {"audio": "voice_s4.wav"}}
+}

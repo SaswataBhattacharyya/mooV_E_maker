@@ -1,0 +1,315 @@
+{
+  "status": "passed",
+  "scope": "representative real configured-provider Full Direct text-to-take path, quality acceptance and actual controller continuation; not rendering every planned shot",
+  "project_id": "disposable-full-text-acceptance-clear-two-scene-story-d7b63a8e",
+  "run_id": "399d90f1-6286-42f8-b79c-d4ec76609fea",
+  "take_id": "13619140-8a17-55fa-9580-a11b39bf6d35",
+  "prompt_id": "034ce8e8-a57c-55b6-ad1a-8f875701e487",
+  "attempt": 1,
+  "sha256": "35a498cba763a634072307816ba03221b2a46f1f152716120ac2d4151ed36420",
+  "path": "/home/riki/web_dev/story_builder/output/disposable-full-text-acceptance-clear-two-scene-story-d7b63a8e/production_v2/runs/399d90f1-6286-42f8-b79c-d4ec76609fea/shots/shot-001-01/takes/13619140-8a17-55fa-9580-a11b39bf6d35/attempt-1/462f63a3e4d3496898dab3b3f0aad092_shot-001-01_00001_.mp4",
+  "native_streams": [
+    {
+      "type": "video",
+      "codec": "h264",
+      "width": 1344,
+      "height": 768
+    },
+    {
+      "type": "audio",
+      "codec": "aac",
+      "width": null,
+      "height": null
+    }
+  ],
+  "duration_seconds": 8.0,
+  "director_review": {
+    "review_id": "07360345-cb75-44d4-bdf8-2049e0dfd7eb",
+    "job_id": "c68370f4-877e-4aba-b01a-ac2b629a3bc5",
+    "project_id": "disposable-full-text-acceptance-clear-two-scene-story-d7b63a8e",
+    "run_id": "399d90f1-6286-42f8-b79c-d4ec76609fea",
+    "take_id": "13619140-8a17-55fa-9580-a11b39bf6d35",
+    "resolution_status": "accepted",
+    "retake_take_id": null,
+    "created_at": "2026-10-06T18:33:29.312765+00:00",
+    "updated_at": "2026-10-06T18:33:29.331109+00:00",
+    "decision": {
+      "action": "accept",
+      "audio_verification": {
+        "confirmed": true,
+        "recorded_at": "2026-10-06T18:33:08.415838+00:00",
+        "scope": "matching_dialogue_audio_uncertainty",
+        "source": "human_native_audio_review",
+        "statement": "Maya\u2019s line is clear; no unwanted speech",
+        "video_sha256": "35a498cba763a634072307816ba03221b2a46f1f152716120ac2d4151ed36420"
+      },
+      "confidence": 0.78,
+      "criteria": [
+        {
+          "evidence": "Maya remains on the right in a dark green patterned top; Arjun remains on the left in a navy shirt. The domestic setting and their appearances are consistent across the sampled frames.",
+          "name": "Composition and character continuity",
+          "passed": true
+        },
+        {
+          "evidence": "Maya turns toward Arjun with controlled urgency. Later, Arjun looks subdued and appears to draw breath; no response from him is reported.",
+          "name": "Requested dramatic action",
+          "passed": true
+        },
+        {
+          "evidence": "ASR detects \u201cThe storm is coming.\u201d Human review of the exact hashed native video confirms Maya\u2019s line is clear and there is no unwanted speech. Static frames do not establish exact lip sync.",
+          "name": "Dialogue and unwanted speech",
+          "passed": true
+        },
+        {
+          "evidence": "The supplied duration is 8.0 seconds, matching the requested limit.",
+          "name": "Duration",
+          "passed": true
+        }
+      ],
+      "director_profile_version": "production_director_profiles_v1",
+      "duration_seconds": 8.0,
+      "evidence": [
+        {
+          "actions": [],
+          "setting": "",
+          "subjects": [
+            {
+              "actions": "Facing forward with controlled urgency; no clear speaking gesture confirmed in static image.",
+              "name": "Maya",
+              "visible_attributes": {
+                "confidence": 0.95,
+                "garment": "Dark green blouse with white floral motifs; gold pendant necklace visible near neck/collarbone (inner collar not distinct).",
+                "hair": "Long dark wavy hair over right shoulder.",
+                "location": "Foreground right of frame, cropped at waist/chest area; face visible, head/hands/feet status: partially outside lower frame."
+              }
+            },
+            {
+              "actions": "Looking downward/left with a subdued expression; no speaking gesture confirmed.",
+              "name": "Arjun",
+              "visible_attributes": {
+                "confidence": 0.92,
+                "garment": "Solid dark blue t-shirt; inner collar not visible due to crew neckline and distance.",
+                "hair": "Short dark hair, neat styling.",
+                "location": "Background center-left; cropped at waist/chest area; face partially visible, head/hands/feet status: mostly out of frame below."
+              }
+            }
+          ],
+          "summary": "A medium two-shot of Maya and Arjun in a dimly lit apartment living room.",
+          "time_seconds": 1.2,
+          "uncertainties": [
+            "Wardrobe inner collar details not resolvable.",
+            "Heads/hands/feet positions fully outside frame; only torsos/faces partially visible.",
+            "Camera movement/duration (8s) unobservable from still.",
+            "External weather/storm presence inferred only by prompt, not shown in image.",
+            "Exact spatial geometry of apartment beyond what is captured remains unknown."
+          ]
+        },
+        {
+          "actions": [
+            "Maya turns toward Arjun in a controlled gesture of urgency.",
+            "Arjun listens and draws breath to respond (mouth slightly open)."
+          ],
+          "setting": "",
+          "subjects": [
+            {
+              "confidence": 0.95,
+              "location": "Left side of frame",
+              "name": "Arjun",
+              "visible_attributes": {
+                "feet": "not visible/cropped lower",
+                "garment": "dark navy t-shirt",
+                "hair": "short dark hair with a slight wave and visible parting",
+                "hands": "not visible/cropped lower",
+                "head": "inside frame, facing slightly right"
+              }
+            },
+            {
+              "confidence": 0.92,
+              "location": "Right side of frame (foreground)",
+              "name": "Maya",
+              "visible_attributes": {
+                "feet": "not visible/cropped lower",
+                "garment": "dark green top with white polka dots",
+                "hair": "long, dark, wavy hair down to mid-back",
+                "hands": "not visible/cropped lower",
+                "head": "inside frame, profile/semi-profile facing left"
+              }
+            },
+            {
+              "confidence": 0.85,
+              "location": "Far right, background dining table",
+              "name": "Red flowers",
+              "visible_attributes": {
+                "garment": "vase with red roses"
+              }
+            }
+          ],
+          "summary": "A restrained medium two-shot of Maya and Arjun in a domestic interior. Maya warns Arjun; the shot holds steady as she turns, focusing on his listening.",
+          "time_seconds": 4.0,
+          "uncertainties": [
+            "Exact camera lens/focal length cannot be confirmed.",
+            "Time duration/ambience/audio details not verifiable from stills.",
+            "Maya's speaking gesture specifics (exact lip shape/micro-movements) are indeterminate.",
+            "Storm suggestion is inferred, not visible in frame."
+          ]
+        },
+        {
+          "actions": "Man looking downward; woman turned toward him, no visible speaking gestures due to back view.",
+          "setting": "",
+          "subjects": [
+            {
+              "confidence": 0.9,
+              "location": "left half of frame",
+              "name": "man",
+              "visible_attributes": [
+                "dark short hair",
+                "beard",
+                "navy blue crew-neck t-shirt",
+                "standing",
+                "head inside frame"
+              ]
+            },
+            {
+              "confidence": 0.8,
+              "location": "right foreground, cropped at shoulders",
+              "name": "woman (S1)",
+              "visible_attributes": [
+                "long dark wavy hair",
+                "green top with white polka dots",
+                "back to camera"
+              ]
+            }
+          ],
+          "summary": "Two people in an interior space; one facing the camera with a somber expression, the other shown from behind with long hair.",
+          "time_seconds": 6.8,
+          "uncertainties": [
+            "Wardrobe layers beyond visible tops not seen (inner collar/undergarments).",
+            "Woman's hands, face, lower body cropped or out of frame.",
+            "Man's feet, full body position not in frame.",
+            "Camera movement speed/duration uncertain; speech cues unobservable from still.",
+            "Outdoor storm evidence not visible."
+          ]
+        }
+      ],
+      "native_audio": {
+        "device": "cpu",
+        "dialogue_match": true,
+        "expected_lines": [
+          "The storm is coming."
+        ],
+        "initial_prompt": null,
+        "language": "en",
+        "limitations": "ASR is screening evidence; it cannot certify speaker identity or absence of garbled speech.",
+        "model": "cached Whisper-small",
+        "segments": [
+          {
+            "end": 5.0,
+            "no_speech_prob": 0.02289721928536892,
+            "start": 0.0,
+            "text": " The storm is coming."
+          }
+        ],
+        "text": " The storm is coming."
+      },
+      "prompt_delta": "",
+      "provider": "codex",
+      "reason": "The sampled frames show a coherent apartment two-shot: Maya turns toward Arjun, and the final view emphasizes him listening before any response. The native-audio screen matches the exact requested line, and human review of the matching video hash confirms Maya\u2019s line is clear with no unwanted speech. Static frames cannot establish exact lip sync, camera steadiness, or the subtle storm ambience; no material defect is evident in the supplied evidence.",
+      "reference_evidence": [],
+      "schema_version": 1,
+      "video_sha256": "35a498cba763a634072307816ba03221b2a46f1f152716120ac2d4151ed36420"
+    },
+    "error": null
+  },
+  "browser_restart_playback": {
+    "status": "passed",
+    "exit_code": 0,
+    "scope": "actual configured-provider take and prompt; terminal recovered video; HTTP process restart, real browser reload and native video decoding/playback; no render submissions; cancellation checked separately"
+  },
+  "controller_continuation": {
+    "status": "passed",
+    "scope": "actual accepted Direct take advances saved controller once to next same-scene prompt preparation; replay creates no duplicate; no provider call or new GPU take",
+    "project_id": "disposable-full-text-acceptance-clear-two-scene-story-d7b63a8e",
+    "run_id": "399d90f1-6286-42f8-b79c-d4ec76609fea",
+    "accepted_take_id": "13619140-8a17-55fa-9580-a11b39bf6d35",
+    "new_prompt_task": {
+      "task_id": "8e822af5-6def-4255-a736-f0f03941947c",
+      "project_id": "disposable-full-text-acceptance-clear-two-scene-story-d7b63a8e",
+      "run_id": "399d90f1-6286-42f8-b79c-d4ec76609fea",
+      "stage": "controller:resolved_shot_prompt",
+      "idempotency_key": "controller-shot-prompt-c69b964b934d3160196b2be3b45f7d64",
+      "request_hash": "db0e1f906a1ce99899fae700814fc4a8cae5c20a039ed00aa2fcbad03488e152",
+      "status": "queued",
+      "owner_token": null,
+      "lease_until": null,
+      "attempt_count": 0,
+      "created_at": "2026-10-06T18:34:08.848222+00:00",
+      "updated_at": "2026-10-06T18:34:08.848222+00:00",
+      "request": {
+        "approved_reference_catalog": [
+          {
+            "character_ids": [
+              "adccb436-bb70-43c4-8468-ab43b1bfcd00",
+              "6fcb6440-51ff-4398-bb50-cc8a53161478"
+            ],
+            "images": [],
+            "scene_id": "scene-001",
+            "scope": "approved project assets and this run's bound voice excerpts",
+            "shot_id": "shot-001-02",
+            "videos": [
+              {
+                "asset_id": "pa-64d41df45fdb44ae",
+                "filename": "462f63a3e4d3496898dab3b3f0aad092_shot-001-01_00001_.mp4",
+                "role": "previous_cut_tail",
+                "sha256": "35a498cba763a634072307816ba03221b2a46f1f152716120ac2d4151ed36420"
+              }
+            ],
+            "voice_references": [],
+            "world_id": "8e8676fd-efb1-49af-91fe-55849049cb12"
+          }
+        ],
+        "approved_reference_catalog_hash": "dbc10675cd2d0e8216fb86e1e2ea833fa9d28fd67d40edef473e78991388749f",
+        "asset_fingerprints": {},
+        "director_retake_decision_hash": null,
+        "director_retake_idempotency_key": null,
+        "director_retake_of_take_id": null,
+        "director_retake_root_take_id": null,
+        "h3_rules_hash": "446c7b84257efc4e45429e62f4f42e9504b51895859ecedc1126fed8a897224a",
+        "h3_rules_version": "h3_prompt_rules_v1",
+        "predecessor_take_id": "13619140-8a17-55fa-9580-a11b39bf6d35",
+        "provider": "codex",
+        "reference_map": null,
+        "reference_resolution_hash": null,
+        "resolve_catalog": true,
+        "run_config_hash": "d4ee46921ba80fdac1b262b1d6997f78a9e46e5f8dd27c708fabe9107982b751",
+        "shot_content_hash": "82c2682cf2d9cac744b954f1b03cbce6617bd3012df3029a0ecd9716266c4a17",
+        "shot_id": "shot-001-02",
+        "shot_plan_revision_id": "shot_plans-e6672616eca3",
+        "source_story_hash": "21a0aac51a885a5d38051e1a646f022973e57e4f662eb122b83c31177bbcf4fd",
+        "validation_request": {
+          "duration_seconds": 8.0,
+          "images": [],
+          "prompt": "Continue in the same apartment immediately after Maya's warning. Frame Arjun with Maya still present at the edge of the shot. Arjun meets her urgency with a restrained, decisive reply. Arjun (S2) says: <d>[English] Then we go now.</d> Hold on their shared stillness after the line, before either leaves. Keep the quiet apartment ambience and faint storm presence consistent with the preceding shot.",
+          "ref_image_size": "match",
+          "reference_map_only": false,
+          "resolution_preset": 0.98,
+          "seed": 1,
+          "shot_plan_revision_id": "shot_plans-e6672616eca3",
+          "standalone_audios": [],
+          "steps": 20,
+          "videos": []
+        }
+      },
+      "result": null,
+      "error": null
+    },
+    "takes_unchanged": true
+  },
+  "gpu_observed": {
+    "sample_count": 463,
+    "max_temperature_c": 82.0,
+    "max_clock_mhz": 2080.0
+  },
+  "watchdog_terminal": true,
+  "watchdog_tripped": false,
+  "prior_decision_preserved": true
+}

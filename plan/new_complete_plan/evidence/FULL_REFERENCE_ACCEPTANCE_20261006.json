@@ -1,0 +1,1027 @@
+{
+  "status": "passed",
+  "scope": "representative real configured-provider Full Reference text-to-accepted-masters-to-take path; actual corrected clothing/native audio review, restart/browser playback, continuation and scene-boundary reset; not rendering every planned shot",
+  "project_id": "disposable-full-controller-provider-resume-acceptance-a7321ab5",
+  "run_id": "cbac5b4a-41f8-440a-a0fb-a8698a0de2d4",
+  "take_id": "86da118e-91a6-59a1-aca2-c36e7e6dfa61",
+  "prompt_id": "11070873-dcd5-539b-a63e-e8af857157bb",
+  "attempt": 1,
+  "sha256": "9de2de0ad1bfcb7f7eb03580a74549f2e7a7c3e2f6ad86ebd5264968115b11b0",
+  "path": "/tmp/storybuilder-full-controller-acceptance-20261006-nlmgwm4y/output/disposable-full-controller-provider-resume-acceptance-a7321ab5/production_v2/runs/cbac5b4a-41f8-440a-a0fb-a8698a0de2d4/shots/shot-001-01/takes/86da118e-91a6-59a1-aca2-c36e7e6dfa61/attempt-1/833c9409cb04482dbeeb97d6c68f04ff_shot-001-01_00002_.mp4",
+  "native_streams": [
+    {
+      "type": "video",
+      "codec": "h264",
+      "width": 1344,
+      "height": 768
+    },
+    {
+      "type": "audio",
+      "codec": "aac",
+      "width": null,
+      "height": null
+    }
+  ],
+  "duration_seconds": 8.0,
+  "director_review": {
+    "review_id": "8af4d9d6-4f1f-4412-a2da-256fbf6a5cb0",
+    "job_id": "3e633b31-4c02-44d2-b5fd-20607b620fdf",
+    "project_id": "disposable-full-controller-provider-resume-acceptance-a7321ab5",
+    "run_id": "cbac5b4a-41f8-440a-a0fb-a8698a0de2d4",
+    "take_id": "86da118e-91a6-59a1-aca2-c36e7e6dfa61",
+    "resolution_status": "accepted",
+    "retake_take_id": null,
+    "created_at": "2026-10-07T02:21:49.979797+00:00",
+    "updated_at": "2026-10-07T02:21:49.990266+00:00",
+    "decision": {
+      "action": "accept",
+      "audio_verification": {
+        "confirmed": true,
+        "prior_pronunciation_verification": {
+          "confirmed": true,
+          "recorded_at": "2026-10-07T01:58:02.043760+00:00",
+          "scope": "name_spelling_only",
+          "source": "human_native_audio_review",
+          "statement": "Aaron is fine. But if text said Arun then Arun would have been better but you need to understand - if its audi models were trained by Americans or Englishmen then it is highly unlikely that it will say Arun even though it is written that way! So, I think its best to leave it be - Aaron is fine",
+          "video_sha256": "9de2de0ad1bfcb7f7eb03580a74549f2e7a7c3e2f6ad86ebd5264968115b11b0"
+        },
+        "recorded_at": "2026-10-07T02:21:34.258613+00:00",
+        "scope": "speaker_with_accepted_pronunciation",
+        "source": "human_native_audio_review",
+        "statement": "what more approval do u need? The girl was speaking not Aaron! Is that what u want to know?",
+        "video_sha256": "9de2de0ad1bfcb7f7eb03580a74549f2e7a7c3e2f6ad86ebd5264968115b11b0"
+      },
+      "confidence": 0.8,
+      "criteria": [
+        {
+          "evidence": "The early and final frames show four adults and one dog; the middle frame describes the dog and all four adults.",
+          "name": "Five subjects remain together",
+          "passed": true
+        },
+        {
+          "evidence": "Mira has tied-back brown hair and dark rainwear; Arun has short dark hair and an olive jacket over a black shirt.",
+          "name": "Character appearance",
+          "passed": true
+        },
+        {
+          "evidence": "The frames show a concrete apartment stairwell with black metal railings.",
+          "name": "Stairwell geography",
+          "passed": true
+        },
+        {
+          "evidence": "The middle frame describes Mira turning her head toward Arun. Still frames cannot verify exact speaking gestures or lip sync.",
+          "name": "Requested action",
+          "passed": true
+        },
+        {
+          "evidence": "ASR captured the requested sentence with \u201cAaron\u201d for \u201cArun.\u201d Exact-hash human review accepted that pronunciation and confirmed a woman spoke.",
+          "name": "Requested dialogue",
+          "passed": true
+        },
+        {
+          "evidence": "The eight-second native-audio screen contains one segment with the requested line and no detected opening or additional speech; ASR alone cannot certify its absence.",
+          "name": "No extra speech detected",
+          "passed": true
+        }
+      ],
+      "director_profile_version": "production_director_profiles_v1",
+      "duration_seconds": 8.0,
+      "evidence": [
+        {
+          "actions": {
+            "description": "Static group pose. No movement inferred from the still frame.",
+            "details": "The woman on the left looks forward with a neutral expression. The man behind her faces forward. The dog sits facing slightly left towards the center. The woman on the stairs looks downward/at the railing. The man on the right looks down towards the floor."
+          },
+          "setting": "",
+          "subjects": [
+            {
+              "confidence": 0.98,
+              "location": "Standing center-left on the landing",
+              "name": "Woman on Left",
+              "visible_attributes": {
+                "extremities_status": "Head, hands, and feet are fully inside the frame.",
+                "garment_layers": "Dark navy hooded rain jacket (single layer), dark slim pants, black lace-up boots",
+                "hair": "Brown hair tied back in a low ponytail"
+              }
+            },
+            {
+              "confidence": 0.98,
+              "location": "Standing center-left background, behind the woman",
+              "name": "Man Behind Woman",
+              "visible_attributes": {
+                "extremities_status": "Head and feet are fully inside the frame.",
+                "garment_layers": "Dark navy hooded jacket worn open over a charcoal grey t-shirt, blue jeans, black footwear",
+                "hair": "Short dark hair with facial beard"
+              }
+            },
+            {
+              "confidence": 0.98,
+              "location": "Sitting on the landing floor, center-right foreground",
+              "name": "Dog",
+              "visible_attributes": {
+                "breed/look": "Medium-sized dog with long fur; predominantly white body with reddish-brown patches on head and back",
+                "extremities_status": "Fully inside frame"
+              }
+            },
+            {
+              "confidence": 0.98,
+              "location": "Standing on the lower steps of the right-hand flight",
+              "name": "Woman on Stairs",
+              "visible_attributes": {
+                "extremities_status": "Head and feet are fully inside the frame.",
+                "garment_layers": "Dark navy long-sleeved blouse, black skinny jeans, brown ankle boots",
+                "hair": "Long dark hair worn down"
+              }
+            },
+            {
+              "confidence": 0.98,
+              "location": "Standing at the bottom right of the stairs",
+              "name": "Man on Right (Arun)",
+              "visible_attributes": {
+                "extremities_status": "Head, hands, and feet are fully inside the frame.",
+                "garment_layers": "Olive green zip-up jacket worn open over a black crew-neck t-shirt (visible inner collar), black trousers, black footwear",
+                "hair": "Short dark hair, neutral expression"
+              }
+            }
+          ],
+          "summary": "A wide architectural shot of a stairwell capturing four people and one dog standing in a static group configuration.",
+          "time_seconds": 1.2,
+          "uncertainties": [
+            "Inference: Arun (Subject 2) olive jacket matches the visual brief, but the specific zipper style of his black inner shirt is hard to distinguish perfectly due to lighting smoothness. The exact brand or texture of shoes for all figures is obscured by resolution.",
+            "The identity 'Mother's apartment' is accepted as context from the brief; visual evidence shows generic architecture without personal markers."
+          ]
+        },
+        {
+          "actions": [
+            {
+              "action_type": "Standing, turning head right towards Arun.",
+              "confidence": 0.95,
+              "name": "Mira"
+            },
+            {
+              "action_type": "Standing, looking left at Mira.",
+              "confidence": 0.95,
+              "name": "Arun"
+            }
+          ],
+          "setting": "",
+          "subjects": [
+            {
+              "confidence": 0.95,
+              "location": "Left foreground",
+              "name": "Mira",
+              "visible_attributes": {
+                "extremities_status": "Head, hands, feet inside frame.",
+                "garment_layers": "Dark hooded rain jacket (zippered), dark slim pants, black lace-up boots.",
+                "hair": "Brown hair tied back."
+              }
+            },
+            {
+              "confidence": 0.95,
+              "location": "Right foreground",
+              "name": "Arun",
+              "visible_attributes": {
+                "extremities_status": "Head, hands, feet inside frame.",
+                "garment_layers": "Olive green zip-up jacket (open), black crew-neck t-shirt, slim-fit black trousers, black footwear.",
+                "hair": "Short dark hair."
+              }
+            },
+            {
+              "confidence": 0.9,
+              "location": "Mid-ground left (behind dog)",
+              "name": "Neighbor Man",
+              "visible_attributes": {
+                "extremities_status": "Head, hands inside frame; feet obscured.",
+                "garment_layers": "Dark hooded jacket over grey shirt, blue jeans.",
+                "hair": "Short dark hair, beard."
+              }
+            },
+            {
+              "confidence": 0.9,
+              "location": "Mid-ground right (on stairs)",
+              "name": "Neighbor Woman",
+              "visible_attributes": {
+                "extremities_status": "Head, hands, feet inside frame.",
+                "garment_layers": "Navy long-sleeve jacket, dark skinny pants, brown ankle boots.",
+                "hair": "Long brown hair."
+              }
+            }
+          ],
+          "summary": "A wide-angle shot of a group (Mira, Arun, two neighbors, and a dog) in an enclosed concrete stairwell with black railings.",
+          "time_seconds": 4.0,
+          "uncertainties": [
+            "Audio/Dialogue is not visible; the script's dialogue is a prompt for the retake, not evidence in this still.",
+            "Specific brand or material texture of trousers/jackets is obscured by lighting."
+          ]
+        },
+        {
+          "actions": [
+            {
+              "action": "Grouping/Staring",
+              "description": "Four adults stand relatively still in a formation facing each other; the woman on the stairs is stepping down, while others are static observers."
+            },
+            {
+              "action": "Sitting/Waiting",
+              "description": "The dog sits calmly with a slight head tilt, looking towards the right side of the frame."
+            }
+          ],
+          "setting": "",
+          "subjects": [
+            {
+              "confidence": 0.95,
+              "location": "Standing on the lower landing, far left.",
+              "name": "Mira",
+              "visible_attributes": {
+                "extremities_status": "Head, hands, and feet are inside frame.",
+                "garment_layers": "Dark hooded jacket (single layer), dark slim pants, black lace-up boots. High collar covers inner neck area; no inner collar visible.",
+                "hair": "Brown hair tied back in a low ponytail."
+              }
+            },
+            {
+              "confidence": 1.0,
+              "location": "Standing on the stairs, far right.",
+              "name": "Arun",
+              "visible_attributes": {
+                "extremities_status": "Head, hands, and feet are inside frame.",
+                "garment_layers": "Olive green zip-up jacket (open collar), black crew-neck t-shirt visible at inner neck/chest, slim-fit black trousers, black shoes.",
+                "hair": "Short dark hair."
+              }
+            },
+            {
+              "confidence": 0.85,
+              "location": "On the stairs, descending, center right.",
+              "name": "Unknown Female (Neighbor)",
+              "visible_attributes": {
+                "extremities_status": "Head, hands, and feet are inside frame.",
+                "garment_layers": "Dark navy blue long-sleeved button-down shirt (collar visible), dark pants, brown boots.",
+                "hair": "Long brown hair."
+              }
+            },
+            {
+              "confidence": 0.85,
+              "location": "Standing behind the dog, center left.",
+              "name": "Unknown Male (Neighbor)",
+              "visible_attributes": {
+                "extremities_status": "Head, hands, and feet are inside frame.",
+                "garment_layers": "Dark navy jacket over black t-shirt, blue denim jeans with dark patch on right knee, grey socks visible at ankles.",
+                "hair": "Short dark hair."
+              }
+            },
+            {
+              "confidence": 0.98,
+              "location": "Sitting on the landing floor between the groups.",
+              "name": "Mother's Dog",
+              "visible_attributes": {
+                "appearance": "Medium-sized spaniel mix with white and brown fur, wearing a black collar."
+              }
+            }
+          ],
+          "summary": "A static medium-wide shot captures a tense confrontation in an apartment stairwell involving two distinct groups of people and a dog. A woman stands on the landing while a couple descends the stairs; they observe a man and a dog positioned centrally.",
+          "time_seconds": 6.8,
+          "uncertainties": [
+            "Exact material of the dark jacket (Mira) is indistinct but appears matte.",
+            "Footwear tread details are obscured by shadow and distance.",
+            "Identity of the neighbors cannot be confirmed from visual data alone."
+          ]
+        }
+      ],
+      "frame_analysis_subject_limit": 12,
+      "native_audio": {
+        "device": "cpu",
+        "dialogue_match": false,
+        "expected_lines": [
+          "Arun, the neighbors are here\u2014with Mom's dog."
+        ],
+        "initial_prompt": null,
+        "language": "en",
+        "limitations": "ASR is screening evidence; it cannot certify speaker identity or absence of garbled speech.",
+        "model": "cached Whisper-small",
+        "segments": [
+          {
+            "end": 8.0,
+            "no_speech_prob": 0.03643183782696724,
+            "start": 0.0,
+            "text": " Aaron, the neighbors are here with mom's dog."
+          }
+        ],
+        "text": " Aaron, the neighbors are here with mom's dog."
+      },
+      "prompt_delta": "",
+      "provider": "codex",
+      "reason": "The sampled frames show Mira, Arun, both neighbors, and the dog together in the approved concrete stairwell. Mira turns toward Arun, and their visible clothing matches the approved character references. The native-audio screen contains the requested line and no detected extra speech. Exact-hash human review accepted the \u201cAaron\u201d pronunciation of Arun and confirmed that a woman, rather than Arun, spoke. The still frames cannot establish exact lip sync.",
+      "reference_evidence": [
+        {
+          "asset_id": "pa-440cde5f91e74ab0",
+          "identity": {
+            "appearance": "",
+            "approved_visual_design": "Dark rain jacket, hair tied back.",
+            "description": "",
+            "display_name": "Mira",
+            "entity_id": "2c35b097-3a51-4fbc-8584-744bb1b221ff",
+            "kind": "character",
+            "visual_design_provenance": {
+              "entity_id": "2c35b097-3a51-4fbc-8584-744bb1b221ff",
+              "field": "content.continuity.visible_characters_and_animal[].proposed_design_choice",
+              "revision_id": "visual_briefs-6b620faa101d",
+              "unit_ids": [
+                "visual-001",
+                "visual-002"
+              ]
+            }
+          },
+          "intent": "Preserve the approved appearance of character 2c35b097-3a51-4fbc-8584-744bb1b221ff; ignore image background.",
+          "observed_features": {
+            "action_state": [
+              {
+                "pose": "Neutral standing pose with arms at sides, facing forward.",
+                "type": "standing"
+              }
+            ],
+            "camera": {
+              "confidence": 0.9,
+              "inference": "No distortion indicates neutral focal length.",
+              "type": "Standard lens full-body shot",
+              "viewpoint": "Eye-level or slightly below"
+            },
+            "composition": "Full-length center framing; complete silhouette visible with ample negative space.",
+            "confidence": 0.75,
+            "dimensions": {
+              "height": 720,
+              "width": 1280
+            },
+            "evidence_valid": true,
+            "lighting": {
+              "brightness_relation": "Upper region (face/jacket collar) is slightly brighter and sharper than the lower region (boots/shadows).",
+              "confidence": 0.95,
+              "setup": "Soft studio lighting",
+              "visible_evidence": "Gentle shadows beneath the figure indicate a primary light source from above."
+            },
+            "objects": [],
+            "palette": {
+              "dominant_colors": [
+                "Charcoal/Dark Grey (jacket)",
+                "Black (pants/boots)",
+                "Grey (background)"
+              ]
+            },
+            "reference_uses": [
+              "composition",
+              "subject appearance",
+              "lighting"
+            ],
+            "replaceable_parts": [
+              "subjects",
+              "background",
+              "style"
+            ],
+            "subjects": [
+              {
+                "confidence": 0.95,
+                "location": "Standing centrally.",
+                "name": "Mira",
+                "visible_attributes": {
+                  "feet_status": "inside frame",
+                  "garment_layers": "Dark hooded rain jacket (single layer), dark slim pants, black lace-up boots. Inner collar not visible due to high jacket collar.",
+                  "hair": "Brown hair tied back in a low style.",
+                  "hands_status": "inside frame",
+                  "head_status": "inside frame"
+                }
+              }
+            ],
+            "summary": "Full-body character master shot of Mira against a neutral studio background.",
+            "text": "",
+            "uncertainties": [
+              "Fabric texture details of the jacket are smoothed by lighting.",
+              "Shoe brand or specific pant material not discernible."
+            ]
+          },
+          "role": "character_master",
+          "sha256": "9e5c1c7423bfb1297271083d39a8e472ea7fab534f8f2bc69b8d893a53deec8a",
+          "tag": "<Picture 1>"
+        },
+        {
+          "asset_id": "pa-28d46d969d234bbb",
+          "identity": {
+            "appearance": "",
+            "approved_visual_design": "Olive jacket, short dark hair.",
+            "description": "",
+            "display_name": "Arun",
+            "entity_id": "b40ca495-65c9-47f0-83f3-5e3901776812",
+            "kind": "character",
+            "visual_design_provenance": {
+              "entity_id": "b40ca495-65c9-47f0-83f3-5e3901776812",
+              "field": "content.continuity.visible_characters_and_animal[].proposed_design_choice",
+              "revision_id": "visual_briefs-6b620faa101d",
+              "unit_ids": [
+                "visual-001",
+                "visual-002"
+              ]
+            }
+          },
+          "intent": "Preserve the approved appearance of character b40ca495-65c9-47f0-83f3-5e3901776812; ignore image background.",
+          "observed_features": {
+            "action_state": [
+              {
+                "confidence": 1.0,
+                "location": "Center",
+                "name": "Standing pose",
+                "visible_attributes": [
+                  "Static frontal stance",
+                  "Arms extended naturally by sides"
+                ]
+              }
+            ],
+            "camera": {
+              "evidence_visible": [
+                "Frontal axis",
+                "Full vertical framing"
+              ],
+              "inferred": [
+                "Neutral focal length"
+              ]
+            },
+            "composition": {
+              "confidence": 1.0,
+              "framing_type": "Full shot / Full length",
+              "perspective": "Eye-level, flat plane",
+              "subject_placement": "Centered with adequate head and toe room"
+            },
+            "confidence": 0.75,
+            "dimensions": {
+              "height": 720,
+              "width": 1280
+            },
+            "evidence_valid": true,
+            "lighting": {
+              "evidence_visible": [
+                "Diffused studio lighting",
+                "Soft shadow cast on floor to the right"
+              ],
+              "upper_lower_brightness": "Uniform; background gradient is negligible."
+            },
+            "objects": [],
+            "palette": {
+              "dominant_colors": [
+                "Olive green (jacket)",
+                "Black (clothing layers, shoes)",
+                "Gray (background)"
+              ]
+            },
+            "reference_uses": [
+              "composition",
+              "subject appearance",
+              "lighting"
+            ],
+            "replaceable_parts": [
+              "subjects",
+              "background",
+              "style"
+            ],
+            "subjects": [
+              {
+                "confidence": 1.0,
+                "location": "Center of frame",
+                "name": "Arun",
+                "visible_attributes": {
+                  "appearance": [
+                    "Short dark hair",
+                    "Neutral expression"
+                  ],
+                  "clothing_layers": [
+                    "Olive green zip-up jacket with collar (worn open)",
+                    "Black crew-neck t-shirt (visible inner collar and center section)",
+                    "Slim-fit black trousers",
+                    "Black footwear (shoes/boots)"
+                  ],
+                  "extremities_status": "Head, hands, and feet are fully inside the frame.",
+                  "identity_name": "Arun"
+                }
+              }
+            ],
+            "summary": "A full-body production reference shot of a male subject named Arun standing against a neutral studio background.",
+            "text": "",
+            "uncertainties": [
+              "Specific footwear tread pattern is not visible.",
+              "Fabric texture details are limited by image resolution."
+            ]
+          },
+          "role": "character_master",
+          "sha256": "dcfece2aa7842d1475a2978670daed0f6ccaa367356ceec6e1f40637c9f0796b",
+          "tag": "<Picture 2>"
+        },
+        {
+          "asset_id": "pa-02b4430c9d07473c",
+          "identity": {
+            "appearance": null,
+            "approved_visual_design": "Mother's apartment building stairwell; concrete landing and metal rail.",
+            "description": "",
+            "display_name": "the stairwell of their mother's apartment building",
+            "entity_id": "a37f7394-716a-44dd-b3d0-81db874a3713",
+            "kind": "world",
+            "visual_design_provenance": {
+              "entity_id": "a37f7394-716a-44dd-b3d0-81db874a3713",
+              "field": "content.continuity.location.identifier",
+              "revision_id": "visual_briefs-6b620faa101d",
+              "unit_ids": [
+                "visual-001",
+                "visual-002"
+              ]
+            }
+          },
+          "intent": "Preserve the approved geography of world a37f7394-716a-44dd-b3d0-81db874a3713; ignore image characters.",
+          "observed_features": {
+            "action_state": [],
+            "camera": {
+              "lens": "Wide-angle (approx. 24mm) to capture spatial context",
+              "viewpoint": "Low angle, ground floor perspective"
+            },
+            "composition": "Wide architectural shot from the lower level; strong diagonal lines lead the eye upwards.",
+            "confidence": 0.75,
+            "dimensions": {
+              "height": 720,
+              "width": 1280
+            },
+            "evidence_valid": true,
+            "lighting": {
+              "brightness": "Upper regions (upper wall/lower ceiling) appear significantly brighter than the lower landing due to directional lighting or architectural shadow.",
+              "source": "Diffused ambient light; high-key illumination."
+            },
+            "objects": [],
+            "palette": [
+              "White",
+              "Grey",
+              "Black",
+              "Beige"
+            ],
+            "reference_uses": [
+              "composition",
+              "subject appearance",
+              "lighting"
+            ],
+            "replaceable_parts": [
+              "subjects",
+              "background",
+              "style"
+            ],
+            "subjects": [
+              {
+                "confidence": 0.98,
+                "location": "Center right, ascending L-shape",
+                "name": "Staircase",
+                "visible_attributes": [
+                  "grey textured risers",
+                  "white nosing strips",
+                  "black metal railings"
+                ]
+              },
+              {
+                "confidence": 0.96,
+                "location": "Foreground and lower mid-ground",
+                "name": "Landing Floor",
+                "visible_attributes": [
+                  "rough grey concrete finish",
+                  "matte texture"
+                ]
+              },
+              {
+                "confidence": 0.98,
+                "location": "Flanking the stairs and landing",
+                "name": "Railings",
+                "visible_attributes": [
+                  "black vertical metal bars",
+                  "thick black handrail"
+                ]
+              }
+            ],
+            "summary": "An unoccupied stairwell featuring grey concrete stairs with metal railings and white walls.",
+            "text": "",
+            "uncertainties": [
+              "Identity 'Mother's apartment' cannot be visually confirmed; the space lacks specific personal markers."
+            ]
+          },
+          "role": "world_master",
+          "sha256": "72802bd52c1e718baf62ac2ff88a7de3d9257791c1c42fb29088d3eea5ea7a3b",
+          "tag": "<Picture 3>"
+        }
+      ],
+      "schema_version": 1,
+      "temporal_speaker_evidence": null,
+      "video_sha256": "9de2de0ad1bfcb7f7eb03580a74549f2e7a7c3e2f6ad86ebd5264968115b11b0"
+    },
+    "error": null
+  },
+  "accepted_reference_evidence": [
+    {
+      "tag": "<Picture 1>",
+      "asset_id": "pa-440cde5f91e74ab0",
+      "sha256": "9e5c1c7423bfb1297271083d39a8e472ea7fab534f8f2bc69b8d893a53deec8a",
+      "role": "character_master",
+      "intent": "Preserve the approved appearance of character 2c35b097-3a51-4fbc-8584-744bb1b221ff; ignore image background.",
+      "identity": {
+        "appearance": "",
+        "approved_visual_design": "Dark rain jacket, hair tied back.",
+        "description": "",
+        "display_name": "Mira",
+        "entity_id": "2c35b097-3a51-4fbc-8584-744bb1b221ff",
+        "kind": "character",
+        "visual_design_provenance": {
+          "entity_id": "2c35b097-3a51-4fbc-8584-744bb1b221ff",
+          "field": "content.continuity.visible_characters_and_animal[].proposed_design_choice",
+          "revision_id": "visual_briefs-6b620faa101d",
+          "unit_ids": [
+            "visual-001",
+            "visual-002"
+          ]
+        }
+      },
+      "observed_features": {
+        "action_state": [
+          {
+            "pose": "Neutral standing pose with arms at sides, facing forward.",
+            "type": "standing"
+          }
+        ],
+        "camera": {
+          "confidence": 0.9,
+          "inference": "No distortion indicates neutral focal length.",
+          "type": "Standard lens full-body shot",
+          "viewpoint": "Eye-level or slightly below"
+        },
+        "composition": "Full-length center framing; complete silhouette visible with ample negative space.",
+        "confidence": 0.75,
+        "dimensions": {
+          "height": 720,
+          "width": 1280
+        },
+        "evidence_valid": true,
+        "lighting": {
+          "brightness_relation": "Upper region (face/jacket collar) is slightly brighter and sharper than the lower region (boots/shadows).",
+          "confidence": 0.95,
+          "setup": "Soft studio lighting",
+          "visible_evidence": "Gentle shadows beneath the figure indicate a primary light source from above."
+        },
+        "objects": [],
+        "palette": {
+          "dominant_colors": [
+            "Charcoal/Dark Grey (jacket)",
+            "Black (pants/boots)",
+            "Grey (background)"
+          ]
+        },
+        "reference_uses": [
+          "composition",
+          "subject appearance",
+          "lighting"
+        ],
+        "replaceable_parts": [
+          "subjects",
+          "background",
+          "style"
+        ],
+        "subjects": [
+          {
+            "confidence": 0.95,
+            "location": "Standing centrally.",
+            "name": "Mira",
+            "visible_attributes": {
+              "feet_status": "inside frame",
+              "garment_layers": "Dark hooded rain jacket (single layer), dark slim pants, black lace-up boots. Inner collar not visible due to high jacket collar.",
+              "hair": "Brown hair tied back in a low style.",
+              "hands_status": "inside frame",
+              "head_status": "inside frame"
+            }
+          }
+        ],
+        "summary": "Full-body character master shot of Mira against a neutral studio background.",
+        "text": "",
+        "uncertainties": [
+          "Fabric texture details of the jacket are smoothed by lighting.",
+          "Shoe brand or specific pant material not discernible."
+        ]
+      }
+    },
+    {
+      "tag": "<Picture 2>",
+      "asset_id": "pa-28d46d969d234bbb",
+      "sha256": "dcfece2aa7842d1475a2978670daed0f6ccaa367356ceec6e1f40637c9f0796b",
+      "role": "character_master",
+      "intent": "Preserve the approved appearance of character b40ca495-65c9-47f0-83f3-5e3901776812; ignore image background.",
+      "identity": {
+        "appearance": "",
+        "approved_visual_design": "Olive jacket, short dark hair.",
+        "description": "",
+        "display_name": "Arun",
+        "entity_id": "b40ca495-65c9-47f0-83f3-5e3901776812",
+        "kind": "character",
+        "visual_design_provenance": {
+          "entity_id": "b40ca495-65c9-47f0-83f3-5e3901776812",
+          "field": "content.continuity.visible_characters_and_animal[].proposed_design_choice",
+          "revision_id": "visual_briefs-6b620faa101d",
+          "unit_ids": [
+            "visual-001",
+            "visual-002"
+          ]
+        }
+      },
+      "observed_features": {
+        "action_state": [
+          {
+            "confidence": 1.0,
+            "location": "Center",
+            "name": "Standing pose",
+            "visible_attributes": [
+              "Static frontal stance",
+              "Arms extended naturally by sides"
+            ]
+          }
+        ],
+        "camera": {
+          "evidence_visible": [
+            "Frontal axis",
+            "Full vertical framing"
+          ],
+          "inferred": [
+            "Neutral focal length"
+          ]
+        },
+        "composition": {
+          "confidence": 1.0,
+          "framing_type": "Full shot / Full length",
+          "perspective": "Eye-level, flat plane",
+          "subject_placement": "Centered with adequate head and toe room"
+        },
+        "confidence": 0.75,
+        "dimensions": {
+          "height": 720,
+          "width": 1280
+        },
+        "evidence_valid": true,
+        "lighting": {
+          "evidence_visible": [
+            "Diffused studio lighting",
+            "Soft shadow cast on floor to the right"
+          ],
+          "upper_lower_brightness": "Uniform; background gradient is negligible."
+        },
+        "objects": [],
+        "palette": {
+          "dominant_colors": [
+            "Olive green (jacket)",
+            "Black (clothing layers, shoes)",
+            "Gray (background)"
+          ]
+        },
+        "reference_uses": [
+          "composition",
+          "subject appearance",
+          "lighting"
+        ],
+        "replaceable_parts": [
+          "subjects",
+          "background",
+          "style"
+        ],
+        "subjects": [
+          {
+            "confidence": 1.0,
+            "location": "Center of frame",
+            "name": "Arun",
+            "visible_attributes": {
+              "appearance": [
+                "Short dark hair",
+                "Neutral expression"
+              ],
+              "clothing_layers": [
+                "Olive green zip-up jacket with collar (worn open)",
+                "Black crew-neck t-shirt (visible inner collar and center section)",
+                "Slim-fit black trousers",
+                "Black footwear (shoes/boots)"
+              ],
+              "extremities_status": "Head, hands, and feet are fully inside the frame.",
+              "identity_name": "Arun"
+            }
+          }
+        ],
+        "summary": "A full-body production reference shot of a male subject named Arun standing against a neutral studio background.",
+        "text": "",
+        "uncertainties": [
+          "Specific footwear tread pattern is not visible.",
+          "Fabric texture details are limited by image resolution."
+        ]
+      }
+    },
+    {
+      "tag": "<Picture 3>",
+      "asset_id": "pa-02b4430c9d07473c",
+      "sha256": "72802bd52c1e718baf62ac2ff88a7de3d9257791c1c42fb29088d3eea5ea7a3b",
+      "role": "world_master",
+      "intent": "Preserve the approved geography of world a37f7394-716a-44dd-b3d0-81db874a3713; ignore image characters.",
+      "identity": {
+        "appearance": null,
+        "approved_visual_design": "Mother's apartment building stairwell; concrete landing and metal rail.",
+        "description": "",
+        "display_name": "the stairwell of their mother's apartment building",
+        "entity_id": "a37f7394-716a-44dd-b3d0-81db874a3713",
+        "kind": "world",
+        "visual_design_provenance": {
+          "entity_id": "a37f7394-716a-44dd-b3d0-81db874a3713",
+          "field": "content.continuity.location.identifier",
+          "revision_id": "visual_briefs-6b620faa101d",
+          "unit_ids": [
+            "visual-001",
+            "visual-002"
+          ]
+        }
+      },
+      "observed_features": {
+        "action_state": [],
+        "camera": {
+          "lens": "Wide-angle (approx. 24mm) to capture spatial context",
+          "viewpoint": "Low angle, ground floor perspective"
+        },
+        "composition": "Wide architectural shot from the lower level; strong diagonal lines lead the eye upwards.",
+        "confidence": 0.75,
+        "dimensions": {
+          "height": 720,
+          "width": 1280
+        },
+        "evidence_valid": true,
+        "lighting": {
+          "brightness": "Upper regions (upper wall/lower ceiling) appear significantly brighter than the lower landing due to directional lighting or architectural shadow.",
+          "source": "Diffused ambient light; high-key illumination."
+        },
+        "objects": [],
+        "palette": [
+          "White",
+          "Grey",
+          "Black",
+          "Beige"
+        ],
+        "reference_uses": [
+          "composition",
+          "subject appearance",
+          "lighting"
+        ],
+        "replaceable_parts": [
+          "subjects",
+          "background",
+          "style"
+        ],
+        "subjects": [
+          {
+            "confidence": 0.98,
+            "location": "Center right, ascending L-shape",
+            "name": "Staircase",
+            "visible_attributes": [
+              "grey textured risers",
+              "white nosing strips",
+              "black metal railings"
+            ]
+          },
+          {
+            "confidence": 0.96,
+            "location": "Foreground and lower mid-ground",
+            "name": "Landing Floor",
+            "visible_attributes": [
+              "rough grey concrete finish",
+              "matte texture"
+            ]
+          },
+          {
+            "confidence": 0.98,
+            "location": "Flanking the stairs and landing",
+            "name": "Railings",
+            "visible_attributes": [
+              "black vertical metal bars",
+              "thick black handrail"
+            ]
+          }
+        ],
+        "summary": "An unoccupied stairwell featuring grey concrete stairs with metal railings and white walls.",
+        "text": "",
+        "uncertainties": [
+          "Identity 'Mother's apartment' cannot be visually confirmed; the space lacks specific personal markers."
+        ]
+      }
+    }
+  ],
+  "browser_restart_playback": {
+    "status": "passed",
+    "exit_code": 0,
+    "scope": "actual configured-provider take and prompt; terminal recovered video; HTTP process restart, real browser reload and native video decoding/playback; no render submissions; cancellation checked separately"
+  },
+  "controller_continuation": {
+    "status": "passed",
+    "project_id": "disposable-full-controller-provider-resume-acceptance-a7321ab5",
+    "run_id": "cbac5b4a-41f8-440a-a0fb-a8698a0de2d4",
+    "accepted_take_id": "86da118e-91a6-59a1-aca2-c36e7e6dfa61",
+    "new_prompt_task": {
+      "task_id": "e5d2c6e6-97ac-49fa-a2ec-40aed8788c47",
+      "project_id": "disposable-full-controller-provider-resume-acceptance-a7321ab5",
+      "run_id": "cbac5b4a-41f8-440a-a0fb-a8698a0de2d4",
+      "stage": "controller:resolved_shot_prompt",
+      "idempotency_key": "controller-shot-prompt-fd1c2ba991ae77f070d7f670db76e0e2",
+      "request_hash": "90b9abe44b1c1f5ff436abd3df8c0290b555a7c403ad5bad6d4019fdeaaa1bb8",
+      "status": "queued",
+      "owner_token": null,
+      "lease_until": null,
+      "attempt_count": 0,
+      "created_at": "2026-10-07T02:22:15.760536+00:00",
+      "updated_at": "2026-10-07T02:22:15.760536+00:00",
+      "request": {
+        "approved_reference_catalog": [
+          {
+            "character_ids": [
+              "2c35b097-3a51-4fbc-8584-744bb1b221ff",
+              "b40ca495-65c9-47f0-83f3-5e3901776812"
+            ],
+            "images": [
+              {
+                "asset_id": "pa-440cde5f91e74ab0",
+                "entity_id": "2c35b097-3a51-4fbc-8584-744bb1b221ff",
+                "filename": "95e4714508f949e98ba0e2f5a0d277d0_candidate-1_00001_.png",
+                "role": "character_master",
+                "sha256": "9e5c1c7423bfb1297271083d39a8e472ea7fab534f8f2bc69b8d893a53deec8a"
+              },
+              {
+                "asset_id": "pa-28d46d969d234bbb",
+                "entity_id": "b40ca495-65c9-47f0-83f3-5e3901776812",
+                "filename": "45fa20fc913c45438e4c8a074568e701_candidate-1_00001_.png",
+                "role": "character_master",
+                "sha256": "dcfece2aa7842d1475a2978670daed0f6ccaa367356ceec6e1f40637c9f0796b"
+              },
+              {
+                "asset_id": "pa-02b4430c9d07473c",
+                "entity_id": "a37f7394-716a-44dd-b3d0-81db874a3713",
+                "filename": "c63d2967cc4840c9a4fbe09c6b96df5a_candidate-1_00001_.png",
+                "role": "world_master",
+                "sha256": "72802bd52c1e718baf62ac2ff88a7de3d9257791c1c42fb29088d3eea5ea7a3b"
+              }
+            ],
+            "scene_id": "scene-001",
+            "scope": "approved project assets and this run's bound voice excerpts",
+            "shot_id": "shot-001-02",
+            "videos": [
+              {
+                "asset_id": "pa-275fc9a21a6446a2",
+                "filename": "833c9409cb04482dbeeb97d6c68f04ff_shot-001-01_00002_.mp4",
+                "role": "previous_cut_tail",
+                "sha256": "9de2de0ad1bfcb7f7eb03580a74549f2e7a7c3e2f6ad86ebd5264968115b11b0"
+              }
+            ],
+            "voice_references": [],
+            "world_id": "a37f7394-716a-44dd-b3d0-81db874a3713"
+          }
+        ],
+        "approved_reference_catalog_hash": "4b3f633ead848b5d19be673e9a8098b7bc2c3de8a4da60058386b4c6233d8aa3",
+        "asset_fingerprints": {},
+        "director_retake_decision_hash": null,
+        "director_retake_idempotency_key": null,
+        "director_retake_of_take_id": null,
+        "director_retake_root_take_id": null,
+        "h3_rules_hash": "446c7b84257efc4e45429e62f4f42e9504b51895859ecedc1126fed8a897224a",
+        "h3_rules_version": "h3_prompt_rules_v1",
+        "predecessor_take_id": "86da118e-91a6-59a1-aca2-c36e7e6dfa61",
+        "provider": "codex",
+        "reference_map": null,
+        "reference_resolution_hash": null,
+        "resolve_catalog": true,
+        "run_config_hash": "ba7e046b670c0a578a2442c53a93722ddae51b801ee00887196f3d980605730f",
+        "shot_content_hash": "ece0ba060acd8631fc94b1c0049d88198e4c6c38700af863234febf01f110ab5",
+        "shot_id": "shot-001-02",
+        "shot_plan_revision_id": "shot_plans-5c26d62cfb09",
+        "source_story_hash": "52864ceb7e2bf435c023a9214be98ba5a78f2495c67fb069ac57332c4f941639",
+        "validation_request": {
+          "duration_seconds": 11.0,
+          "images": [],
+          "prompt": "One uninterrupted 11-second shot inside the stairwell of Mira and Arun's mother's apartment building. Mira is (S1); Arun is (S2). Frame the siblings together, with the two waiting neighbors and their mother's dog nearby. A faint rush of floodwater outside and the stairwell's damp echo convey the nearby flood. Mira, eager to leave immediately, says: (S1) <d>[English] We need to leave now.</d> Arun answers, intent on organizing the neighbors first: (S2) <d>[English] First we get the neighbors organized. Then we all go.</d> Keep the sound restrained and hold on their disagreement. End before anyone begins evacuating.",
+          "ref_image_size": "match",
+          "reference_map_only": false,
+          "resolution_preset": 0.98,
+          "seed": 1,
+          "shot_plan_revision_id": "shot_plans-5c26d62cfb09",
+          "standalone_audios": [],
+          "steps": 20,
+          "videos": []
+        }
+      },
+      "result": null,
+      "error": null
+    },
+    "controller_replay_no_duplicate": true,
+    "scene_boundary_shot_id": "shot-002-01",
+    "scene_boundary_reference": null,
+    "cross_scene_predecessor_rejected": true,
+    "provider_calls": 0,
+    "gpu_submissions": 0
+  },
+  "gpu_observed": {
+    "sample_count": 541,
+    "max_temperature_c": 78.0,
+    "max_clock_mhz": 2086.0
+  },
+  "watchdog_terminal": true,
+  "watchdog_tripped": false,
+  "staging_entries_empty": true,
+  "original_take_preserved": true
+}

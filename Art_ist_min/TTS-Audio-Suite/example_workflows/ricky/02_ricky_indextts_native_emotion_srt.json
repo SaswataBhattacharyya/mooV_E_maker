@@ -1,0 +1,764 @@
+{
+  "id": "fc1d4589-d0cb-4b7c-860e-2e7388ba4781",
+  "revision": 0,
+  "last_node_id": 124,
+  "last_link_id": 102,
+  "nodes": [
+    {
+      "id": 7,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        -1777.1941695366222,
+        1514.6762996261243
+      ],
+      "size": [
+        681.011956510959,
+        764.5946331232026
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.44",
+        "Node name for S&R": "PrimitiveStringMultiline",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.0.1"
+        }
+      },
+      "widgets_values": [
+        "1\n00:00:01,000 --> 00:00:04,000\n[Narrator] Welcome to the trial.\n\n2\n00:00:04,500 --> 00:00:08,500\n[Alice] I did not do it.\n\n3\n00:00:09,000 --> 00:00:13,500\n[Bob] Then explain where you were last night.\n\n4\n00:00:14,000 --> 00:00:18,500\n[Narrator] The room fell silent.\n"
+      ],
+      "color": "#232",
+      "bgcolor": "#353",
+      "title": "Timed SRT Script"
+    },
+    {
+      "id": 8,
+      "type": "UnifiedTTSSRTNode",
+      "pos": [
+        -969.208605693085,
+        1466.5996012693608
+      ],
+      "size": [
+        400,
+        388
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "TTS_engine",
+          "name": "TTS_engine",
+          "type": "TTS_ENGINE",
+          "link": 102
+        },
+        {
+          "localized_name": "opt_narrator",
+          "name": "opt_narrator",
+          "shape": 7,
+          "type": "*",
+          "link": 19
+        },
+        {
+          "localized_name": "srt_content",
+          "name": "srt_content",
+          "type": "STRING",
+          "widget": {
+            "name": "srt_content"
+          },
+          "link": 5
+        },
+        {
+          "localized_name": "narrator_voice",
+          "name": "narrator_voice",
+          "type": "COMBO",
+          "widget": {
+            "name": "narrator_voice"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "timing_mode",
+          "name": "timing_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "timing_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "enable_audio_cache",
+          "name": "enable_audio_cache",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_audio_cache"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "fade_for_StretchToFit",
+          "name": "fade_for_StretchToFit",
+          "shape": 7,
+          "type": "FLOAT",
+          "widget": {
+            "name": "fade_for_StretchToFit"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "max_stretch_ratio",
+          "name": "max_stretch_ratio",
+          "shape": 7,
+          "type": "FLOAT",
+          "widget": {
+            "name": "max_stretch_ratio"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "min_stretch_ratio",
+          "name": "min_stretch_ratio",
+          "shape": 7,
+          "type": "FLOAT",
+          "widget": {
+            "name": "min_stretch_ratio"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "timing_tolerance",
+          "name": "timing_tolerance",
+          "shape": 7,
+          "type": "FLOAT",
+          "widget": {
+            "name": "timing_tolerance"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "batch_size",
+          "name": "batch_size",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "batch_size"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            6
+          ]
+        },
+        {
+          "localized_name": "generation_info",
+          "name": "generation_info",
+          "type": "STRING",
+          "links": [
+            7
+          ]
+        },
+        {
+          "localized_name": "timing_report",
+          "name": "timing_report",
+          "type": "STRING",
+          "links": [
+            8
+          ]
+        },
+        {
+          "localized_name": "Adjusted_SRT",
+          "name": "Adjusted_SRT",
+          "type": "STRING",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "chatterbox_srt_voice",
+        "ver": "4971b8fd0f92c29b108c2606ab8b79b00a590adf",
+        "Node name for S&R": "UnifiedTTSSRTNode",
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        }
+      },
+      "widgets_values": [
+        "1\n00:00:01,000 --> 00:00:04,000\n[Narrator] Welcome to the trial.\n\n2\n00:00:04,500 --> 00:00:08,500\n[Alice] I did not do it.\n\n3\n00:00:09,000 --> 00:00:13,500\n[Bob] Then explain where you were last night.\n\n4\n00:00:14,000 --> 00:00:18,500\n[Narrator] The room fell silent.\n",
+        "none",
+        2,
+        "fixed",
+        "smart_natural",
+        true,
+        0.01,
+        1,
+        1,
+        2,
+        0
+      ],
+      "color": "#223",
+      "bgcolor": "#335",
+      "title": "Unified TTS SRT - Native Emotion"
+    },
+    {
+      "id": 9,
+      "type": "PreviewAudio",
+      "pos": [
+        -472.3261328737368,
+        1346.4173322429058
+      ],
+      "size": [
+        550,
+        88
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 6
+        },
+        {
+          "localized_name": "audioUI",
+          "name": "audioUI",
+          "type": "AUDIO_UI",
+          "widget": {
+            "name": "audioUI"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "PreviewAudio",
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        }
+      },
+      "widgets_values": [],
+      "color": "#233",
+      "bgcolor": "#355"
+    },
+    {
+      "id": 10,
+      "type": "PreviewAny",
+      "pos": [
+        -453.8393292074482,
+        1520.5468159345146
+      ],
+      "size": [
+        582.6618546145119,
+        123.37649456386998
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "source",
+          "name": "source",
+          "type": "*",
+          "link": 7
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.44",
+        "Node name for S&R": "PreviewAny",
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        }
+      },
+      "widgets_values": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": 11,
+      "type": "PreviewAny",
+      "pos": [
+        -509.34530746292774,
+        1735.916092420153
+      ],
+      "size": [
+        707.2014436156464,
+        472.4795855880566
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "source",
+          "name": "source",
+          "type": "*",
+          "link": 8
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.44",
+        "Node name for S&R": "PreviewAny",
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        }
+      },
+      "widgets_values": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": 12,
+      "type": "PreviewAny",
+      "pos": [
+        267.6738671262566,
+        1390.081666502923
+      ],
+      "size": [
+        517.8032948170803,
+        616.3356657399827
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "source",
+          "name": "source",
+          "type": "*",
+          "link": 9
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.44",
+        "Node name for S&R": "PreviewAny",
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        }
+      },
+      "widgets_values": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": 16,
+      "type": "CharacterVoicesNode",
+      "pos": [
+        -2205.331599901248,
+        1530.7930754298022
+      ],
+      "size": [
+        280,
+        186
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "opt_audio_input",
+          "name": "opt_audio_input",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "localized_name": "voice_name",
+          "name": "voice_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "voice_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "reference_text",
+          "name": "reference_text",
+          "type": "STRING",
+          "widget": {
+            "name": "reference_text"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "opt_narrator",
+          "name": "opt_narrator",
+          "type": "NARRATOR_VOICE",
+          "links": [
+            17
+          ]
+        },
+        {
+          "localized_name": "character_name",
+          "name": "character_name",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Narrator Voice",
+      "properties": {
+        "cnr_id": "chatterbox_srt_voice",
+        "ver": "4971b8fd0f92c29b108c2606ab8b79b00a590adf",
+        "Node name for S&R": "CharacterVoicesNode",
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        }
+      },
+      "widgets_values": [
+        "voices_examples/Clint_Eastwood CC3 (enhanced2).wav",
+        "",
+        ""
+      ],
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 14,
+      "type": "Reroute",
+      "pos": [
+        -1824.1879700738398,
+        1327.9546643660583
+      ],
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 17
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "NARRATOR_VOICE",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false,
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        }
+      },
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 13,
+      "type": "Reroute",
+      "pos": [
+        -1197.794165943767,
+        1323.024548281363
+      ],
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "NARRATOR_VOICE",
+          "links": [
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false,
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        }
+      },
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 124,
+      "type": "QwenEmotionNode",
+      "pos": [
+        -2611.97314453125,
+        1681.879638671875
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "emotion_control",
+          "type": "EMOTION_CONTROL",
+          "links": [
+            101
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "chatterbox_srt_voice",
+        "ver": "5e4c39b3d25a437f83dd71cf21b2fad282eda9e1",
+        "Node name for S&R": "QwenEmotionNode"
+      },
+      "widgets_values": [
+        "qwen0.6bemo4-merge",
+        "Tense courtroom testimony: {seg}"
+      ],
+      "color": "#323",
+      "bgcolor": "#535",
+      "title": "Qwen Emotion Prompt"
+    },
+    {
+      "id": 123,
+      "type": "IndexTTSEngineNode",
+      "pos": [
+        -1903.6300048828125,
+        1051.2659912109375
+      ],
+      "size": [
+        331.431640625,
+        442
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "emotion_control",
+          "shape": 7,
+          "type": "*",
+          "link": 101
+        }
+      ],
+      "outputs": [
+        {
+          "name": "TTS_engine",
+          "type": "TTS_ENGINE",
+          "links": [
+            102
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "chatterbox_srt_voice",
+        "ver": "5e4c39b3d25a437f83dd71cf21b2fad282eda9e1",
+        "Node name for S&R": "IndexTTSEngineNode"
+      },
+      "widgets_values": [
+        "IndexTTS-2",
+        "auto",
+        0.8,
+        false,
+        120,
+        200,
+        0.8,
+        0.8,
+        30,
+        true,
+        0,
+        3,
+        9.5,
+        1500,
+        true,
+        true,
+        "auto"
+      ],
+      "color": "#222",
+      "bgcolor": "#000",
+      "title": "IndexTTS Engine"
+    }
+  ],
+  "links": [
+    [
+      5,
+      7,
+      0,
+      8,
+      2,
+      "STRING"
+    ],
+    [
+      6,
+      8,
+      0,
+      9,
+      0,
+      "AUDIO"
+    ],
+    [
+      7,
+      8,
+      1,
+      10,
+      0,
+      "STRING"
+    ],
+    [
+      8,
+      8,
+      2,
+      11,
+      0,
+      "STRING"
+    ],
+    [
+      9,
+      8,
+      3,
+      12,
+      0,
+      "STRING"
+    ],
+    [
+      17,
+      16,
+      0,
+      14,
+      0,
+      "NARRATOR_VOICE"
+    ],
+    [
+      10,
+      14,
+      0,
+      13,
+      0,
+      "*"
+    ],
+    [
+      19,
+      13,
+      0,
+      8,
+      1,
+      "NARRATOR_VOICE"
+    ],
+    [
+      101,
+      124,
+      0,
+      123,
+      0,
+      "*"
+    ],
+    [
+      102,
+      123,
+      0,
+      8,
+      0,
+      "TTS_ENGINE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "⚙️ Higgs Audio 2 Engine",
+      "bounding": [
+        -3407.05078844512,
+        1196.7667508124953,
+        1160.0010986328125,
+        443.6000061035156
+      ],
+      "color": "#b58b2a",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.703204309120567,
+      "offset": [
+        3052.7012657580653,
+        -640.5714180333562
+      ]
+    }
+  },
+  "version": 0.4
+}

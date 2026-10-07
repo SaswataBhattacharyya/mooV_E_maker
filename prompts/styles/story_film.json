@@ -1,0 +1,15 @@
+{
+  "style_id": "story_film",
+  "name": "Story / Film",
+  "version": 1,
+  "description": "Cinematic narrative direction with character and scene continuity.",
+  "stages": {
+    "story": "Protect the author's intent, dramatic arc, character motivation and causal continuity.",
+    "scene_direction": "Define beat, emotion, camera, lighting, blocking, palette, dialogue delivery, music and sound cues as one coherent contract.",
+    "image": "Create filmic first and last frames with stable character identity, wardrobe, props, lens and lighting.",
+    "audio": "Make dialogue, music and effects express the scene emotion and land on explicit timeline markers.",
+    "video": "Describe only supported motion between the approved first and last frames; preserve camera and emotional intent.",
+    "review": "Reject contradictions in character, geography, camera, lighting, timing or emotional continuity."
+  },
+  "analysis": {"tone": ["cinematic", "character-led"], "camera_priority": "dramatic composition", "pacing": "beat-driven"}
+}

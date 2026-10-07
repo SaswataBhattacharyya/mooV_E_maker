@@ -1,0 +1,544 @@
+"""
+Audio Cache Module - Unified caching system for TTS engines
+Provides centralized cache management with engine-specific cache key generation
+"""
+
+import hashlib
+import torch
+from typing import Dict, Any, Optional, Tuple, Callable
+from abc import ABC, abstractmethod
+
+
+# Global audio cache shared across all engines
+GLOBAL_AUDIO_CACHE = {}
+
+
+class CacheKeyGenerator(ABC):
+    """Abstract base class for engine-specific cache key generation."""
+    
+    @abstractmethod
+    def generate_cache_key(self, **params) -> str:
+        """Generate cache key from engine-specific parameters."""
+        pass
+
+
+class F5TTSCacheKeyGenerator(CacheKeyGenerator):
+    """Cache key generator for F5-TTS engine."""
+    
+    def generate_cache_key(self, **params) -> str:
+        """Generate F5-TTS cache key from parameters."""
+        cache_data = {
+            'text': params.get('text', ''),
+            'model_name': params.get('model_name', ''),
+            'device': params.get('device', ''),
+            'audio_component': params.get('audio_component', ''),
+            'ref_text': params.get('ref_text', ''),
+            'temperature': params.get('temperature', 0.8),
+            'speed': params.get('speed', 1.0),
+            'target_rms': params.get('target_rms', 0.1),
+            'cross_fade_duration': params.get('cross_fade_duration', 0.15),
+            'nfe_step': params.get('nfe_step', 32),
+            'cfg_strength': params.get('cfg_strength', 2.0),
+            'seed': params.get('seed', 0),
+            'character': params.get('character', 'narrator'),
+            'engine': 'f5tts'
+        }
+        cache_string = str(sorted(cache_data.items()))
+        return hashlib.md5(cache_string.encode()).hexdigest()
+
+
+class ChatterBoxCacheKeyGenerator(CacheKeyGenerator):
+    """Cache key generator for ChatterBox engine."""
+    
+    def generate_cache_key(self, **params) -> str:
+        """Generate ChatterBox cache key from parameters."""
+        cache_data = {
+            'text': params.get('text', ''),
+            'exaggeration': params.get('exaggeration', 1.0),
+            'temperature': params.get('temperature', 0.8),
+            'cfg_weight': params.get('cfg_weight', 1.0),
+            'seed': params.get('seed', 0),
+            'audio_component': params.get('audio_component', ''),
+            'model_source': params.get('model_source', ''),
+            'device': params.get('device', ''),
+            'language': params.get('language', 'English'),
+            'character': params.get('character', 'narrator'),
+            'engine': 'chatterbox',
+            # ChatterBox Official 23-Lang specific parameters
+            'repetition_penalty': params.get('repetition_penalty', 1.0),
+            'min_p': params.get('min_p', 0.0),
+            'top_p': params.get('top_p', 1.0)
+        }
+        cache_string = str(sorted(cache_data.items()))
+        return hashlib.md5(cache_string.encode()).hexdigest()
+
+
+class ChatterBoxOfficial23LangCacheKeyGenerator(CacheKeyGenerator):
+    """Cache key generator for ChatterBox Official 23-Lang engine."""
+
+    def generate_cache_key(self, **params) -> str:
+        """Generate ChatterBox Official 23-Lang cache key from parameters."""
+        cache_data = {
+            'text': params.get('text', ''),
+            'exaggeration': params.get('exaggeration', 0.5),
+            'temperature': params.get('temperature', 0.8),
+            'cfg_weight': params.get('cfg_weight', 0.5),
+            'seed': params.get('seed', 0),
+            'audio_component': params.get('audio_component', ''),
+            'model_source': params.get('model_source', ''),
+            'model_version': params.get('model_version', 'v1'),  # v1 or v2 - ensures cache invalidation between versions
+            'device': params.get('device', ''),
+            'language': params.get('language', 'English'),
+            'character': params.get('character', 'narrator'),
+            'engine': 'chatterbox_official_23lang',
+            # ChatterBox Official 23-Lang specific parameters
+            'repetition_penalty': params.get('repetition_penalty', 1.0),
+            'min_p': params.get('min_p', 0.0),
+            'top_p': params.get('top_p', 1.0)
+        }
+        cache_string = str(sorted(cache_data.items()))
+        return hashlib.md5(cache_string.encode()).hexdigest()
+
+
+class HiggsAudioCacheKeyGenerator(CacheKeyGenerator):
+    """Cache key generator for Higgs Audio engine."""
+    
+    def generate_cache_key(self, **params) -> str:
+        """Generate Higgs Audio cache key from parameters."""
+        cache_data = {
+            'text': params.get('text', ''),
+            'model_path': params.get('model_path', ''),
+            'tokenizer_path': params.get('tokenizer_path', ''),
+            'device': params.get('device', ''),
+            'reference_text': params.get('reference_text', ''),
+            'system_prompt': params.get('system_prompt', ''),
+            'temperature': params.get('temperature', 1.0),
+            'top_p': params.get('top_p', 0.95),
+            'top_k': params.get('top_k', 50),
+            'max_new_tokens': params.get('max_new_tokens', 2048),
+            'force_audio_gen': params.get('force_audio_gen', False),
+            'ras_win_len': params.get('ras_win_len', 7),
+            'ras_max_num_repeat': params.get('ras_max_num_repeat', 2),
+            'seed': params.get('seed', 0),
+            'character': params.get('character', 'narrator'),
+            'max_chars_per_chunk': params.get('max_chars_per_chunk', 400),
+            # Note: silence_between_chunks_ms excluded - it's post-processing, doesn't affect generation
+            'engine': 'higgs_audio'
+        }
+        
+        # Add reference audio hash if present
+        if 'reference_audio' in params and params['reference_audio'] is not None:
+            audio_dict = params['reference_audio']
+            if isinstance(audio_dict, dict) and 'waveform' in audio_dict:
+                # Create hash of audio waveform
+                import hashlib
+                waveform = audio_dict['waveform']
+                if hasattr(waveform, 'cpu'):  # torch tensor
+                    audio_hash = hashlib.md5(waveform.cpu().numpy().tobytes()).hexdigest()[:8]
+                    cache_data['audio_hash'] = audio_hash
+        
+        cache_string = str(sorted(cache_data.items()))
+        return hashlib.md5(cache_string.encode()).hexdigest()
+
+
+class VibeVoiceCacheKeyGenerator(CacheKeyGenerator):
+    """Cache key generator for VibeVoice engine."""
+    
+    def generate_cache_key(self, **params) -> str:
+        """Generate VibeVoice cache key from parameters."""
+        # Fix floating point precision issues by rounding to 3 decimal places
+        cfg_scale = params.get('cfg_scale', 1.3)
+        temperature = params.get('temperature', 0.95) 
+        top_p = params.get('top_p', 0.95)
+        
+        if isinstance(cfg_scale, (int, float)):
+            cfg_scale = round(float(cfg_scale), 3)
+        if isinstance(temperature, (int, float)):
+            temperature = round(float(temperature), 3)
+        if isinstance(top_p, (int, float)):
+            top_p = round(float(top_p), 3)
+        
+        cache_data = {
+            'text': params.get('text', ''),
+            'cfg_scale': cfg_scale,
+            'temperature': temperature,
+            'top_p': top_p,
+            'use_sampling': params.get('use_sampling', False),
+            'seed': params.get('seed', 42),
+            'model_source': params.get('model_source', 'vibevoice-1.5B'),
+            'device': params.get('device', 'auto'),
+            'max_new_tokens': params.get('max_new_tokens'),
+            'multi_speaker_mode': params.get('multi_speaker_mode', 'Custom Character Switching'),
+            'audio_component': params.get('audio_component', ''),
+            'character': params.get('character', 'narrator'),
+            'inference_steps': params.get('inference_steps', 20),  # Include diffusion inference steps in cache key
+            'attention_mode': params.get('attention_mode', 'eager'),  # Include attention mode in cache key
+            'quantize': params.get('quantize', False),  # Include quantization in cache key
+            'engine': 'vibevoice'
+        }
+        
+        cache_string = str(sorted(cache_data.items()))
+        return hashlib.md5(cache_string.encode()).hexdigest()
+
+
+class StepAudioEditXCacheKeyGenerator(CacheKeyGenerator):
+    """Cache key generator for Step Audio EditX engine."""
+
+    def generate_cache_key(self, **params) -> str:
+        """Generate Step Audio EditX cache key from parameters."""
+        # Fix floating point precision issues by rounding to 3 decimal places
+        temperature = params.get('temperature', 0.7)
+
+        if isinstance(temperature, (int, float)):
+            temperature = round(float(temperature), 3)
+
+        cache_data = {
+            'text': params.get('text', ''),
+            'audio_component': params.get('audio_component', ''),  # Stable voice hash
+            'prompt_text': params.get('prompt_text', ''),  # Reference text
+            'temperature': temperature,
+            'do_sample': params.get('do_sample', True),
+            'max_new_tokens': params.get('max_new_tokens', 8192),
+            'seed': params.get('seed', 0),
+            'model_path': params.get('model_path', 'Step-Audio-EditX'),
+            'device': params.get('device', 'auto'),
+            'torch_dtype': params.get('torch_dtype', 'bfloat16'),
+            'quantization': params.get('quantization', None),
+            'character': params.get('character', 'narrator'),
+            'engine': 'step_audio_editx'
+        }
+
+        cache_string = str(sorted(cache_data.items()))
+        return hashlib.md5(cache_string.encode()).hexdigest()
+
+
+class IndexTTSCacheKeyGenerator(CacheKeyGenerator):
+    """Cache key generator for IndexTTS-2 engine."""
+    
+    def generate_cache_key(self, **params) -> str:
+        """Generate IndexTTS-2 cache key from parameters."""
+        # Round floating point values to avoid precision issues
+        temperature = params.get('temperature', 0.8)
+        top_p = params.get('top_p', 0.8)
+        emotion_alpha = params.get('emotion_alpha', 1.0)
+        
+        if isinstance(temperature, (int, float)):
+            temperature = round(float(temperature), 3)
+        if isinstance(top_p, (int, float)):
+            top_p = round(float(top_p), 3)
+        if isinstance(emotion_alpha, (int, float)):
+            emotion_alpha = round(float(emotion_alpha), 3)
+        
+        cache_data = {
+            'text': params.get('text', ''),
+            'speaker_audio': params.get('speaker_audio', ''),
+            'emotion_audio': params.get('emotion_audio', ''),
+            'emotion_alpha': emotion_alpha,
+            'emotion_vector': params.get('emotion_vector'),  # List or None
+            'use_emotion_text': params.get('use_emotion_text', False),
+            'emotion_text': params.get('emotion_text', ''),
+            'use_random': params.get('use_random', False),
+            'seed': params.get('seed', 0),  # Seed for reproducible generation
+            'do_sample': params.get('do_sample', True),  # Affects sampling vs greedy decoding
+            'temperature': temperature,
+            'top_p': top_p,
+            'top_k': params.get('top_k', 30),
+            'length_penalty': params.get('length_penalty', 0.0),
+            'num_beams': params.get('num_beams', 3),  # Beam search quality parameter
+            'repetition_penalty': params.get('repetition_penalty', 10.0),
+            'max_mel_tokens': params.get('max_mel_tokens', 1500),
+            'max_text_tokens_per_segment': params.get('max_text_tokens_per_segment', 120),
+            'interval_silence': params.get('interval_silence', 200),
+            'model_name': params.get('model_name', 'IndexTTS-2'),
+            'device': params.get('device', 'auto'),
+            'character': params.get('character', 'narrator'),
+            'use_torch_compile': params.get('use_torch_compile', False),  # Optimization may affect output precision
+            'use_accel': params.get('use_accel', False),  # Optimization may affect output precision
+            'stream_return': params.get('stream_return', False),  # Streaming mode changes output format
+            'more_segment_before': params.get('more_segment_before', 0),  # Streaming segmentation affects first-chunk timing
+            'engine': 'index_tts'
+        }
+        
+        cache_string = str(sorted(cache_data.items()))
+        return hashlib.md5(cache_string.encode()).hexdigest()
+
+
+class CosyVoiceCacheKeyGenerator(CacheKeyGenerator):
+    """Cache key generator for CosyVoice3 engine."""
+
+    def generate_cache_key(self, **params) -> str:
+        """Generate CosyVoice3 cache key from parameters."""
+        # Round floating point values to avoid precision issues
+        speed = params.get('speed', 1.0)
+
+        if isinstance(speed, (int, float)):
+            speed = round(float(speed), 3)
+
+        cache_data = {
+            'text': params.get('text', ''),
+            'speaker_audio': params.get('speaker_audio', ''),
+            'reference_text': params.get('reference_text', ''),
+            'mode': params.get('mode', 'zero_shot'),
+            'instruct_text': params.get('instruct_text', ''),
+            'speed': speed,
+            'seed': params.get('seed', 0),
+            'model_path': params.get('model_path', 'Fun-CosyVoice3-0.5B'),
+            'model_variant': params.get('model_variant', 'standard'),  # Invalidate cache on variant switch
+            'device': params.get('device', 'auto'),
+            'use_fp16': params.get('use_fp16', True),
+            'character': params.get('character', 'narrator'),
+            'engine': 'cosyvoice'
+        }
+
+        cache_string = str(sorted(cache_data.items()))
+        return hashlib.md5(cache_string.encode()).hexdigest()
+
+
+class Qwen3TTSCacheKeyGenerator(CacheKeyGenerator):
+    """Cache key generator for Qwen3-TTS engine."""
+
+    def generate_cache_key(self, **params) -> str:
+        """Generate Qwen3-TTS cache key from parameters."""
+        # Round floating point values to avoid precision issues
+        temperature = params.get('temperature', 0.9)
+        top_p = params.get('top_p', 1.0)
+        repetition_penalty = params.get('repetition_penalty', 1.05)
+        subtalker_temperature = params.get('subtalker_temperature', 0.9)
+        subtalker_top_p = params.get('subtalker_top_p', 1.0)
+
+        if isinstance(temperature, (int, float)):
+            temperature = round(float(temperature), 3)
+        if isinstance(top_p, (int, float)):
+            top_p = round(float(top_p), 3)
+        if isinstance(repetition_penalty, (int, float)):
+            repetition_penalty = round(float(repetition_penalty), 3)
+        if isinstance(subtalker_temperature, (int, float)):
+            subtalker_temperature = round(float(subtalker_temperature), 3)
+        if isinstance(subtalker_top_p, (int, float)):
+            subtalker_top_p = round(float(subtalker_top_p), 3)
+
+        cache_data = {
+            'text': params.get('text', ''),
+            'audio_component': params.get('audio_component', ''),
+            'reference_text': params.get('reference_text', ''),
+            'model_type': params.get('model_type', 'Base'),  # CustomVoice, VoiceDesign, Base
+            'speaker': params.get('speaker', ''),
+            'instruct': params.get('instruct', ''),
+            'language': params.get('language', 'Auto'),
+            'temperature': temperature,
+            'top_p': top_p,
+            'top_k': params.get('top_k', 50),
+            'repetition_penalty': repetition_penalty,
+            'max_new_tokens': params.get('max_new_tokens', 2048),
+            'subtalker_temperature': subtalker_temperature,
+            'subtalker_top_p': subtalker_top_p,
+            'subtalker_top_k': params.get('subtalker_top_k', 50),
+            'seed': params.get('seed', 0),
+            'model_size': params.get('model_size', '1.7B'),
+            'device': params.get('device', 'auto'),
+            'dtype': params.get('dtype', 'auto'),
+            'attn_implementation': params.get('attn_implementation', 'auto'),  # Affects output quality
+            'x_vector_only': params.get('x_vector_only', False),  # ICL mode vs x-vector only mode
+            'character': params.get('character', 'narrator'),
+            'engine': 'qwen3_tts'
+        }
+
+        cache_string = str(sorted(cache_data.items()))
+        return hashlib.md5(cache_string.encode()).hexdigest()
+
+
+class EchoTTSCacheKeyGenerator(CacheKeyGenerator):
+    """Cache key generator for Echo-TTS engine."""
+
+    def generate_cache_key(self, **params) -> str:
+        """Generate Echo-TTS cache key from parameters."""
+        # Round float values to avoid cache misses from tiny precision differences.
+        cfg_scale_text = params.get('cfg_scale_text', 3.0)
+        cfg_scale_speaker = params.get('cfg_scale_speaker', 8.0)
+        cfg_min_t = params.get('cfg_min_t', 0.5)
+        cfg_max_t = params.get('cfg_max_t', 1.0)
+        truncation_factor = params.get('truncation_factor')
+        rescale_k = params.get('rescale_k')
+        rescale_sigma = params.get('rescale_sigma')
+        speaker_kv_scale = params.get('speaker_kv_scale')
+        speaker_kv_min_t = params.get('speaker_kv_min_t')
+
+        if isinstance(cfg_scale_text, (int, float)):
+            cfg_scale_text = round(float(cfg_scale_text), 3)
+        if isinstance(cfg_scale_speaker, (int, float)):
+            cfg_scale_speaker = round(float(cfg_scale_speaker), 3)
+        if isinstance(cfg_min_t, (int, float)):
+            cfg_min_t = round(float(cfg_min_t), 3)
+        if isinstance(cfg_max_t, (int, float)):
+            cfg_max_t = round(float(cfg_max_t), 3)
+        if isinstance(truncation_factor, (int, float)):
+            truncation_factor = round(float(truncation_factor), 3)
+        if isinstance(rescale_k, (int, float)):
+            rescale_k = round(float(rescale_k), 3)
+        if isinstance(rescale_sigma, (int, float)):
+            rescale_sigma = round(float(rescale_sigma), 3)
+        if isinstance(speaker_kv_scale, (int, float)):
+            speaker_kv_scale = round(float(speaker_kv_scale), 3)
+        if isinstance(speaker_kv_min_t, (int, float)):
+            speaker_kv_min_t = round(float(speaker_kv_min_t), 3)
+
+        cache_data = {
+            'text': params.get('text', ''),
+            'audio_component': params.get('audio_component', ''),
+            'reference_text': params.get('reference_text', ''),
+            'model': params.get('model', 'jordand/echo-tts-base'),
+            'device': params.get('device', 'auto'),
+            'num_steps': params.get('num_steps', 40),
+            'cfg_scale_text': cfg_scale_text,
+            'cfg_scale_speaker': cfg_scale_speaker,
+            'cfg_min_t': cfg_min_t,
+            'cfg_max_t': cfg_max_t,
+            'truncation_factor': truncation_factor,
+            'rescale_k': rescale_k,
+            'rescale_sigma': rescale_sigma,
+            'speaker_kv_scale': speaker_kv_scale,
+            'speaker_kv_max_layers': params.get('speaker_kv_max_layers'),
+            'speaker_kv_min_t': speaker_kv_min_t,
+            'sequence_length': params.get('sequence_length', 640),
+            'seed': params.get('seed', 0),
+            'engine': 'echo_tts'
+        }
+
+        cache_string = str(sorted(cache_data.items()))
+        return hashlib.md5(cache_string.encode()).hexdigest()
+
+
+class AudioCache:
+    """Unified audio cache manager for all TTS engines."""
+    
+    def __init__(self):
+        self.cache_key_generators = {
+            'f5tts': F5TTSCacheKeyGenerator(),
+            'chatterbox': ChatterBoxCacheKeyGenerator(),
+            'chatterbox_official_23lang': ChatterBoxOfficial23LangCacheKeyGenerator(),  # Uses specialized generator with advanced params
+            'higgs_audio': HiggsAudioCacheKeyGenerator(),
+            'vibevoice': VibeVoiceCacheKeyGenerator(),
+            'step_audio_editx': StepAudioEditXCacheKeyGenerator(),
+            'index_tts': IndexTTSCacheKeyGenerator(),
+            'cosyvoice': CosyVoiceCacheKeyGenerator(),
+            'qwen3_tts': Qwen3TTSCacheKeyGenerator(),
+            'echo_tts': EchoTTSCacheKeyGenerator()
+        }
+    
+    def register_cache_key_generator(self, engine_type: str, generator: CacheKeyGenerator):
+        """Register a cache key generator for a specific engine."""
+        self.cache_key_generators[engine_type] = generator
+    
+    def generate_cache_key(self, engine_type: str, **params) -> str:
+        """Generate cache key for specified engine type."""
+        if engine_type not in self.cache_key_generators:
+            raise ValueError(f"Unknown engine type: {engine_type}")
+        
+        generator = self.cache_key_generators[engine_type]
+        return generator.generate_cache_key(**params)
+    
+    def get_cached_audio(self, cache_key: str) -> Optional[Tuple[torch.Tensor, float]]:
+        """Retrieve cached audio by cache key."""
+        return GLOBAL_AUDIO_CACHE.get(cache_key)
+    
+    def cache_audio(self, cache_key: str, audio_tensor: torch.Tensor, duration: float):
+        """Cache audio tensor with duration."""
+        GLOBAL_AUDIO_CACHE[cache_key] = (audio_tensor.clone(), duration)
+    
+    def create_cache_function(self, engine_type: str, **static_params) -> Callable:
+        """
+        Create a cache function for use with TTS generation.
+        
+        Args:
+            engine_type: "f5tts" or "chatterbox"
+            **static_params: Parameters that don't change between calls
+            
+        Returns:
+            Cache function that can be called with (text, audio_result=None)
+        """
+        def cache_fn(text_content: str, audio_result=None):
+            # Combine static params with dynamic text
+            cache_params = static_params.copy()
+            cache_params['text'] = f"{cache_params.get('character', 'narrator')}:{text_content}"
+            
+            # Generate cache key
+            cache_key = self.generate_cache_key(engine_type, **cache_params)
+            
+            if audio_result is None:
+                # Get from cache
+                cached_data = self.get_cached_audio(cache_key)
+                if cached_data:
+                    character = cache_params.get('character', 'narrator')
+                    language = cache_params.get('language', cache_params.get('model_name', ''))
+                    if language and language != 'English':
+                        print(f"💾 Using cached audio for '{character}' ({language}): '{text_content[:30]}...'")
+                    else:
+                        print(f"💾 Using cached audio for '{character}': '{text_content[:30]}...'")
+                    return cached_data[0]
+                return None
+            else:
+                # Store in cache
+                duration = self._calculate_duration(audio_result, engine_type)
+                self.cache_audio(cache_key, audio_result, duration)
+        
+        return cache_fn
+    
+    def _calculate_duration(self, audio_tensor: torch.Tensor, engine_type: str) -> float:
+        """Calculate audio duration based on engine type."""
+        if audio_tensor.dim() == 1:
+            num_samples = audio_tensor.shape[0]
+        elif audio_tensor.dim() == 2:
+            num_samples = audio_tensor.shape[1]
+        else:
+            num_samples = audio_tensor.numel()
+
+        # Use engine-specific sample rates
+        if engine_type in ('f5tts', 'step_audio_editx', 'qwen3_tts'):
+            sample_rate = 24000
+        elif engine_type in ('index_tts', 'cosyvoice'):
+            sample_rate = 22050
+        else:
+            sample_rate = 44100
+        return num_samples / sample_rate
+    
+    def clear_cache(self):
+        """Clear all cached audio."""
+        global GLOBAL_AUDIO_CACHE
+        GLOBAL_AUDIO_CACHE.clear()
+    
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache statistics."""
+        total_items = len(GLOBAL_AUDIO_CACHE)
+        total_memory = sum(
+            audio.numel() * audio.element_size() + 8  # 8 bytes for duration float
+            for audio, _ in GLOBAL_AUDIO_CACHE.values()
+        )
+        
+        return {
+            'total_items': total_items,
+            'total_memory_bytes': total_memory,
+            'total_memory_mb': total_memory / (1024 * 1024)
+        }
+
+
+# Global cache instance
+audio_cache = AudioCache()
+
+
+def get_audio_cache() -> AudioCache:
+    """Get the global audio cache instance."""
+    return audio_cache
+
+
+def create_cache_function(engine_type: str, **static_params) -> Callable:
+    """
+    Convenience function to create a cache function.
+    
+    Args:
+        engine_type: "f5tts" or "chatterbox"
+        **static_params: Parameters that don't change between calls
+        
+    Returns:
+        Cache function for use with TTS generation
+    """
+    return audio_cache.create_cache_function(engine_type, **static_params)

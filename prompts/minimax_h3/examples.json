@@ -1,0 +1,25 @@
+{
+  "version": "h3_prompt_rules_v1",
+  "examples": [
+    {
+      "id": "fresh-scene-two-speakers",
+      "reference_map": {
+        "pictures": [{"tag": "<Picture 1>", "intent": "Maya's approved character sheet; identity and costume only"}],
+        "videos": [],
+        "audios": [{"tag": "<Audio 1>", "speaker_id": "S1", "intent": "Maya's voice timbre"}],
+        "speaker_audio_tags": {"S1": "<Audio 1>"}
+      },
+      "prompt": "<Picture 1> is Maya's character sheet; preserve her face, hair, proportions and red coat, not its background. <Audio 1> is Maya's voice-timbre reference for Subject 1 (S1). Subject 1 is Maya. At dusk in the empty station, Maya stops beneath a flickering platform lamp. Medium close-up, slow push-in, cool blue ambient light with a narrow warm rim. Maya (S1), quietly: <d>[English] I thought this place was abandoned.</d> End with her looking toward the dark tunnel."
+    },
+    {
+      "id": "prior-cut-with-explicit-paired-audio",
+      "reference_map": {
+        "pictures": [{"tag": "<Picture 1>", "intent": "canonical character identity"}],
+        "videos": [{"tag": "<Video 1>", "paired_audio_tag": "<Audio 1>", "intent": "previous accepted cut, immediate state and camera direction"}],
+        "audios": [{"tag": "<Audio 1>", "source": "paired_video_soundtrack", "intent": "room tone and movement only; do not repeat the previous dialogue"}],
+        "speaker_audio_tags": {}
+      },
+      "prompt": "<Picture 1> is Maya's canonical identity reference. <Video 1> is the immediately preceding accepted cut and provides current body position, room geography and screen direction; continue from its final moment. <Audio 1> is its paired soundtrack; retain room tone and footsteps only, not the prior spoken line. Continue the same hallway shot with a gentle backward track as Maya reaches the exit. End with her hand on the door handle."
+    }
+  ]
+}

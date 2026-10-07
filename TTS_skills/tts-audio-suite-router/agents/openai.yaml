@@ -1,0 +1,4 @@
+interface:
+  display_name: "TTS Audio Suite Router"
+  short_description: "Route TTS Audio Suite tasks safely"
+  default_prompt: "Use $tts-audio-suite-router to route this TTS Audio Suite task to the correct workflow."

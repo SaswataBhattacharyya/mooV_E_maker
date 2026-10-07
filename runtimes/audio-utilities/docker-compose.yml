@@ -1,0 +1,29 @@
+services:
+  denoiser:
+    build:
+      context: ../..
+      dockerfile: runtimes/audio-utilities/denoiser.Dockerfile
+    container_name: story-audio-denoiser
+    entrypoint: []
+    command: ["sleep", "infinity"]
+    volumes:
+      - ../..:/workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+  demucs:
+    build:
+      context: ../..
+      dockerfile: runtimes/audio-utilities/demucs.Dockerfile
+    container_name: story-audio-demucs
+    entrypoint: []
+    command: ["sleep", "infinity"]
+    volumes:
+      - ../..:/workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]

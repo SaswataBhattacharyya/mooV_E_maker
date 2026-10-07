@@ -1,0 +1,4 @@
+interface:
+  display_name: "TTS Operate Workflows"
+  short_description: "Inspect and debug TTS workflows"
+  default_prompt: "Use $tts-operate-workflows to inspect or debug this TTS Audio Suite ComfyUI workflow."

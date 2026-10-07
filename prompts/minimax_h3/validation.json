@@ -1,0 +1,11 @@
+{
+  "version": "h3_prompt_rules_v1",
+  "rules": [
+    {"id": "reference-tags-exact", "severity": "error", "description": "Every connected reference tag appears in the prompt and no unconnected tag appears."},
+    {"id": "speaker-audio-bound", "severity": "error", "description": "Each selected speaker voice is explicitly bound from its exact Audio tag to its stable speaker ID."},
+    {"id": "reference-intent", "severity": "warning", "description": "Each connected reference has a clear use and transfer boundary."},
+    {"id": "audio-copy-conflict", "severity": "error", "description": "Do not request exact old-audio copying while also requesting replacement dialogue/music for the same audio role."},
+    {"id": "duration-dialogue", "severity": "warning", "description": "Warn if requested dialogue is probably too dense for the shot duration; do not silently delete lines."},
+    {"id": "fresh-scene-continuity", "severity": "warning", "description": "A previous video must have an intentional continuity/reference role; do not attach it automatically to a fresh scene."}
+  ]
+}

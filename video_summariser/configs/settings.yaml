@@ -1,0 +1,50 @@
+paths:
+  data_dir: data
+  downloads_dir: out_videos
+  output_dir: outputs
+  log_dir: logs
+  artifact_dir: artifacts
+
+pipeline:
+  transcript_fusion_default: true
+
+scene:
+  threshold: 0.3
+  min_scene_length_sec: 0.2
+  frame_samples_per_scene: 3
+  frame_change_threshold: 0.08
+  large_change_threshold: 0.16
+  max_keyframes_per_scene: 12
+  min_keyframes_per_scene: 3
+  analysis_fps: 4.0
+  max_frames_per_vlm_call: 2
+  batch_overlap_frames: 1
+  extract_fps:
+  delete_frames_after_analysis_default: false
+  use_compaction_default: false
+  use_frame_shaving_default: false
+
+models:
+  model_provider: ollama
+  ollama_base_url: http://127.0.0.1:11434
+  ollama_timeout_sec: 1800
+  ollama_max_loaded_models: 1
+  ollama_num_parallel: 1
+  ollama_keep_alive: 30m
+  whisper_model: small
+  analysis_model_name: qwen3.6:35b
+  analysis_model_path: qwen3.6:35b
+  compact_text_model_name: qwen3.6:35b
+  compact_text_model_path: qwen3.6:35b
+  structuring_model_name: qwen3.6:35b
+  structuring_model_path: qwen3.6:35b
+  text_model_name: qwen3.6:35b
+  text_model_path: qwen3.6:35b
+  visual_model_name: qwen3.6:35b
+  visual_model_path: qwen3.6:35b
+  use_quantization: false
+  llm_max_new_tokens: 512
+
+ui:
+  host: 0.0.0.0
+  port: 3020

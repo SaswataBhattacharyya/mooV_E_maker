@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  styletts2-finetune:
+    build:
+      context: ../..  # Build from audio/ directory (parent of both StyleTTS2 and StyleTTS2_app)
+      dockerfile: StyleTTS2_app/finetune_model/Dockerfile
+    image: styletts2-finetune:latest
+    container_name: styletts2-finetune
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      # Mount StyleTTS2 repository (original repo with Configs/, Utils/, etc.)
+      - "../StyleTTS2:/workspace/StyleTTS2:ro"
+      # Mount StyleTTS2_app (contains finetune_model scripts)
+      - "..:/workspace/StyleTTS2_app:ro"
+      # Mount your data and output directories
+      - "./finetune_project/data:/workspace/finetune_project/data:ro"
+      - "./finetune_project/work:/workspace/finetune_project/work"
+      - "./finetune_project/output:/workspace/finetune_project/output"
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+    # Uncomment to run preprocessing automatically
+    # command: python /workspace/StyleTTS2_app/finetune_model/preprocess_dataset.py --data_root /workspace/finetune_project/data --work_dir /workspace/finetune_project/work
+

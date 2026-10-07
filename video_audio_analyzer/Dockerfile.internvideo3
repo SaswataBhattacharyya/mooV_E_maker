@@ -1,0 +1,17 @@
+# Dedicated caption runtime. The parent is an already-built, isolated analyzer
+# image; this creates a new image layer and does not alter ComfyUI or the PE-AV
+# worker. Transformers is pinned to the model snapshot's documented version.
+FROM video-audio-analyzer-peav:dev
+
+USER root
+RUN pip install --no-cache-dir --no-deps transformers==4.57.3 \
+    && pip install --no-cache-dir --no-deps tokenizers==0.22.1 huggingface-hub==0.36.0 \
+    && pip install --no-cache-dir accelerate==1.15.0
+
+ENV PYTHONPATH=/app/src:/opt/perception_models
+ENV TRANSFORMERS_OFFLINE=1
+ENV HF_HUB_OFFLINE=1
+ENV VIDEO_AUDIO_ANALYZER_INTERNVIDEO3_PATH=/models/internvideo3-8b-instruct
+WORKDIR /app
+COPY src ./src
+ENTRYPOINT ["python", "-m", "video_audio_analyzer.internvideo3_stage"]

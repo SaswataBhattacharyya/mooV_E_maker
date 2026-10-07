@@ -1,344 +1,69 @@
-# AGENTS.md
+# Story Builder agent entry point
 
-## What this file is
+For production-plan work, start with:
 
-`AGENTS.md` is not part of the Movie Builder app and it does not mean this project needs an autonomous agent.
+- `plan/new_complete_plan/00_READ_ME_FIRST.md` — execution contract and user decisions.
+- `plan/new_complete_plan/12_CURRENT_STATUS.md` — authoritative current state and next unfinished gate.
+- `plan/new_complete_plan/11_IMPLEMENTATION_QUALITY_GATES.md` — checks addressing the confirmed integration, concurrency, recovery and supervision defects.
 
-It is a repository instruction file for Codex/coding assistants. Codex reads it before editing the repository so it keeps the same project rules across multiple prompts.
+Read the relevant task card and detailed requirement before changing its implementation. Resume existing work and preserve completed H3 evidence. The user allows H3 retesting when relevant to a changed path or release acceptance, with the GPU supervision below; avoid redundant baseline reruns. Keep the current-status file and chronological implementation log in sync with actual evidence. Read `plan/new_complete_plan/13_SOL_REVIEW_2026_10_04.md` and the latest `plan/new_complete_plan/14_SOL_FOLLOWUP_REVIEW_2026_10_04.md` before the next controller task.
 
-## Project name
+The latest bounded review and remaining-work checklist is `plan/new_complete_plan/17_SOL_REVIEW_2026_10_06.md`. The previous review remains historical evidence. Keep original card scope fixed and reuse completed evidence. A review/fix request while the implementation goal is paused authorizes that review and its repairs; it does not automatically resume live implementation.
 
-Movie Builder
+Before editing existing source/config/workflows, create a compressed backup of affected files and record restoration instructions. Preserve user media, environments, models, original workflows and legacy routes.
 
-## Project type
+Verify the changed producer-to-consumer path with real local persistence. Cover relevant error, concurrency and restart behavior rather than mocking the fields that caused the defect. Isolate physical GPU/Docker/ComfyUI/provider access in CPU tests. Frontend verification includes typecheck, relevant lint/browser checks and build; build now enforces typecheck.
+For generated text, persist the actual provider and selected runtime model on the saved revision and completed durable task result. A run-level default can differ from a bounded retry override; do not use it as proof of which model produced an artifact. Test both revision persistence and task-result persistence.
+When recovering a task after a revision-write crash, reconstruct provider/model from the verified canonical revision so restart cannot erase execution provenance.
 
-A local Streamlit + Ollama step-by-step movie preproduction builder.
+GPU work uses one supervised workload at a time through the shared admission path. ComfyUI renders retain a durable prompt ID and independent prompt-owned watchdog. Operator limits are 83°C intervention cutoff below the requested 85°C maximum and 2100 MHz graphics-clock ceiling. Do not change clocks or interrupt unrelated workloads. A CPU test or saved model smoke does not establish live website or release acceptance.
 
-The product helps a user turn a raw story idea into structured movie-development artifacts:
+If NVIDIA devices or localhost services are inaccessible in the sandbox, use an authorized host-level read-only check before diagnosing host failure. Record the execution scope. Monitor temperature, utilization and graphics clock throughout every live H3 test; idle snapshots alone do not supervise a render.
 
-1. project/story input
-2. generated and revised story
-3. characters
-4. scene and subscene breakdown
-5. background/location assets
-6. props, costumes, makeup, set dressing, VFX/SFX assets
-7. dialogues
-8. action, blocking, camera, and lighting
-9. shot list and storyboard/image prompts
-10. audio design
-11. continuity checks
-12. final JSON/text exports
 
-## Hard project boundaries
+Host execution checklist (confirmed 2026-10-06): ComfyUI is on `http://127.0.0.1:3008`, Story Builder API on `http://127.0.0.1:3010` (`/api/health`). Verify configured ports before probing. The shell sandbox isolates host devices, loopback and processes: a sandbox `nvidia-smi`, `curl` or `ps` failure is inconclusive. Use `exec_command` with authorized `sandbox_permissions="require_escalated"` for host health checks and live GPU monitoring. If host checks fail, record their actual output and stop dependent GPU work. Do not restart a healthy service or reinstall a driver to address sandbox isolation. This snapshot does not replace continuous monitoring during a render.
 
-This project is:
+Review each producer-to-consumer milestone before advancing: compare the requirement with the actual route/worker/persistence/browser path, inspect negative and cancellation branches, and add a regression for each confirmed defect. Lease expiry does not prove a worker or provider exited. Hold the execution fence through canonical persistence and terminal settlement; retain retry keys until recovery succeeds. Queued story/text revisions now carry task identity and can be reconciled after the revision-write/task-settlement crash gap. Do not broaden that recovery assumption to media/provider side effects that lack exact durable ownership evidence.
 
-- Streamlit app
-- local Ollama backend
-- JSON/text artifact generator
-- step-by-step workflow
-- modular page-based UI
-- local file-based project state
+For a controller step that queues multiple related assets (such as character/world masters), validate every identity and compile every new graph before persistence, then atomically enqueue the entire new sibling set in one SQLite transaction. A later validation, compile, or insert failure must leave no newly queued sibling that the worker could render while the controller reports the whole step blocked. Regress both a later graph failure and a late database-insert failure against the real SQLite queue; keep idempotent replay of already persisted requests intact.
 
-This project is not:
+Respect human/Director authority from saved run configuration. Explicitly block unavailable automatic capabilities; do not silently convert delegation into manual approval. Keep remaining features partial until their required gates pass.
 
-- Hermes Agent
-- ComfyUI
-- Node/React frontend
-- agent console
-- website backend
-- custom-node manager
-- image/video model downloader
-- GPU-only application
-- autonomous agent swarm
+Before asking the operator to listen to generated dialogue, extract the exact registered clip's audio and run available local ASR with timestamps. Use cached models and CPU inference when practical; preserve the original native audio, source hash and transcript evidence. Compare required lines and unexpected speech, and inspect an uncertain opening separately without seeding ASR with the intended words. ASR cannot certify that garbled speech is absent; contradictory human feedback keeps the clip held. Do not accept a rejected clip because its required line is clear, nor automatically rerender beyond the exact attempt's authorization.
 
-Do not copy Hermes, ComfyUI, Node.js frontend, custom-node, model-download, website server, agent-console, or mandatory NVIDIA GPU logic from reference files.
+Follow the global context-continuity preference in `/home/riki/.codex/AGENTS.md`: save a concise milestone handoff around 60% context used when usage is available; runtime compaction is configured separately. A prose summary is not runtime compaction. The latest direct human instruction controls scope and pause/resume; an automatic goal continuation or tool status does not override a human pause. The user's 6 October request to fix recurring stalls and implement the full plan renews implementation scope; preserve the separate exact-attempt D5 recovery hold.
 
-## Reference files policy
+## Avoid repeating the acceptance stall
 
-If reference files are provided in `reference/`, use them only for patterns.
+Work toward one named unfinished gate and record its actual exit evidence. Do not rerun passing broad suites or reread the same history merely to fill a blocked continuation; repeat checks only after relevant changes or new failures. Mocked browser tests and CPU regressions remain distinct from configured-provider, persisted HTTP/browser and GPU acceptance. Reuse accepted evidence without declaring untested gates complete.
 
-Allowed to reuse/adapt from reference scripts:
+For a fresh isolated text-only provider smoke, use `scripts/full_controller_text_acceptance.py`, not the older temporary runner which waited 15 minutes after upstream failure. It always creates a new temporary project/run, calls provider smoke, and runs its hard-coded story chain; it cannot resume or retry a durable project/run. Never use it to repeat an accepted prefix. For the known durable `text:shot_plans` continuation, use `scripts/retry_durable_text_stage.py` only after its dry-run preflight passes for the exact run/task. The script verifies the two terminal retryable failures, identical saved request hash, accepted story/scenes/dialogue/visual-brief ancestors, Full/Codex configuration, no takes or active image work, stopped API, and one stable idempotency key. Dry-run is read-only. Provider dispatch requires `--execute --authorize-one-extra-attempt --confirm-provider-content-egress`; respect approval-review rejection and never route around it. The stage-only worker stops before controller advancement, but a later normal API startup can advance a completed shot plan and queue image work, so keep the API stopped until that next GPU batch is explicitly authorized and supervised. The fresh-smoke runner stops on quiescent failed/recovery/review-held stages, waits for queued retries, saves results under its temporary root and exits nonzero on a hold. Its worker settles owned in-flight calls before exit; neither deadline nor lease expiry authorizes duplicate provider work. It never starts media supervisors. Host access is needed for Codex CLI state as well as loopback/devices. Respect approval-review rejection; retry only with new trusted authorization/evidence, not goal bookkeeping or a different endpoint.
 
-- root/sudo handling
-- apt package install style
-- Ollama installation
-- Ollama startup and readiness checks
-- interactive model selection
-- pulling missing Ollama models
-- env-file writing/loading
-- port detection/killing pattern
+Read actual exception inheritance before alleging a missing catch: `SceneOutlineError` subclasses `ValueError`, so a `ValueError` handler covers it. Diagnose rejected candidates separately from uncaught exceptions. A failed reviewer invocation is not a completed independent review. Log accepted artifacts/closed gates, not only test counts or elapsed time. Keep original scope fixed; report blockers with exact required decisions and advance unaffected work without resubmitting uncertain media.
 
-Do not reuse/adapt:
+Text generation budgets include the source context and Director profile appended by the endpoint. Controller-owned stages use the existing 16,000-character cap; never truncate source facts or split stable scene/shot identity silently. `GenerationBudgetError` is deterministic and nonretryable for an unchanged request. Check the enriched consumer payload, not just the queued outline, when diagnosing generation failures.
 
-- Hermes setup
-- Hermes memory sync
-- ComfyUI install
-- ComfyUI model downloads
-- custom node install
-- Node.js install
-- website/uvicorn server
-- agent console
-- mandatory GPU exit behavior
+When tightening an output validator, update the producer's exact schema instructions in the same change. Scene `content.shots` needs one object per planned shot, with exact `unit_id` and non-empty `beat`; narrative boundary instructions alone do not specify those keys. Verify an actual generated-shaped record through the consumer validator, then use a bounded provider probe when needed. Do not replay the whole story pipeline to diagnose an isolated schema mismatch.
 
-## Runtime model roles
+Keep restart reads bounded: `12_CURRENT_STATUS.md` now contains only the current review/gate/next-step entry point. Search `15_STATUS_EVIDENCE_HISTORY_2026_10_04.md` or the implementation log for specific historical evidence rather than loading the whole history.
 
-The app should use these environment variables:
+## Review regressions for the next controller milestone
 
-```bash
-OLLAMA_HOST="http://127.0.0.1:11434"
-OLLAMA_STORY_MODEL="qwen3.6:35b"
-OLLAMA_CODER_MODEL="qwen3-coder:30b"
-MOVIE_BUILDER_HOST="0.0.0.0"
-MOVIE_BUILDER_PORT="8501"
-```
+Before reloading an owned launcher, record its non-secret workflow feature flags and ports, check durable queues and exact remote prompts, then restore the intended flags and verify capability readiness before queueing work. A default launch may disable previously enabled experimental H3 routes. A preparation failure with no reserved prompt is distinct from an uncertain remote submission; preserve the failed attempt and diagnose capability before any retry.
 
-`OLLAMA_STORY_MODEL` is used for creative generation, revision, summarization, and continuity checking.
+Apply `17_SOL_REVIEW_2026_10_06.md`: validate final Director-repaired content before persistence; keep semantic identity validation inside the bounded corrective attempt and feed its actual error into the next candidate; deduplicate recurring holds transactionally using durable run/revision identity rather than the bounded status event window. Tests must cover final repaired malformed output, exhausted correction without orphan canon, and event replay beyond 500 rows with concurrent/reopened stores. Green CPU tests do not close the remaining configured-provider/browser/GPU gates. Preserve the four remaining original packages without adding optional scope.
 
-`OLLAMA_CODER_MODEL` is optional and reserved for future code/debug helper features. The main app must work even if it is empty.
+Read `21_SOL_COMPLETION_REVIEW_2026_10_06.md` for the latest recovery defects and accepted text milestone. A stopped-API check must reject uncertain/permission/timeout results; task completion is not accepted canonical content. Verify saved image/video review hashes again before recovery acceptance. For the latest held shot-plan revision, an explicitly requested `repair_from_revision_id` keeps approved siblings unchanged and creates a new parent-linked revision; use `scripts/repair_held_shot_plan.py` dry-run first. The two operator retry keys in current status are already spent. Do not replay them or relabel the accepted Direct H3 run as reference-built.
 
-## UI workflow
 
-The app must be page-based.
+## Real producer-to-consumer handoff checks
 
-### Page 0: Project Intake
+Canonical speaker IDs (often UUIDs) and H3 local S1/S2 labels are different fields. Use the frozen `speaker_labels` map for dialogue prefixes, preserve repeated-speaker identity and exact lines, and retain canonical IDs in voice-reference declarations. Do not change the frozen source corpus during an active run to resolve a code contract mismatch.
 
-This is the first page the user sees.
+Shot identity fields may be on the saved unit wrapper (`character_ids`, `world_id`), while generated wording is in `content`. Bind the wrapper identities before route/master checks and final prompt facts; reject conflicting generated identities. A Reference-built route must consume its approved masters even when shot planning ran before those masters existed. Verify real saved revisions, not fixtures that duplicate wrapper fields inside content.
 
-Fields:
+A resolved preparation has a reviewed final `prompt` and a nested validation request. New producer results must put the reviewed prompt into that request. For older saved results, reconstruct only that prompt field from the same accepted durable result; preserve reference/config snapshots and validate hashes. Test an actual differing draft/final pair through controller queueing and reopened SQLite replay, rather than pre-filling a fixture's nested request with the final prompt. Completed generation, accepted review, and queued/running render are separate states; do not relabel historical jobs or repeat provider/render work to paper over a handoff mismatch.
 
-- Story heading/title
-- Raw story idea text area
-- Genre dropdown
-- Optional custom genre field
-- Tone dropdown
-- Visual style dropdown
-- Target format/duration dropdown
-- Language dropdown
-- Optional style/reference notes
-- Optional checkbox: "Use web research for genre/style inspiration when available"
+Accepted legacy scene reads may recognize `shot_id` as the exact `unit_id` alias without rewriting canonical bytes. Reject missing, conflicting or duplicate identities and blank beats; never bind by list position or guessed wording. New generated scenes still require `unit_id` and the full one-to-one planned-shot validator. Verify saved legacy scenes through the actual downstream consumer before repeating any provider stages.
 
-At the top of the page, include a `Next` button that goes to Page 1: Story Builder.
-
-Page 0 should not generate the final expanded story. It should save the intake data to:
-
-```text
-project_state/project_meta.json
-story/story_input.json
-```
-
-### Page 1: Story Builder
-
-Generates the expanded story from Page 0.
-
-Must include:
-
-- Generate Story button
-- streamed generation output
-- editable generated story area
-- revision instruction text area
-- Revise Story button
-- Next button at top
-
-Save:
-
-```text
-project_state/story/story_expanded.json
-project_state/story/story_summary.json
-```
-
-### Page 2: Character Builder
-
-Generate character index first, then generate each character separately.
-
-For every character:
-
-- show name/title
-- show generated description
-- revision instruction box
-- revise button for that character only
-
-Save:
-
-```text
-project_state/characters/characters_index.json
-project_state/characters/char_001.json
-project_state/characters/char_002.json
-...
-```
-
-### Page 3: Scene and Subscene Breakdown
-
-Generate scene index and individual scene files.
-
-Save:
-
-```text
-project_state/scenes/scene_index.json
-project_state/scenes/scene_001.json
-...
-```
-
-### Page 4 onward
-
-Continue with modular pages:
-
-- background assets
-- props/costumes/VFX/SFX
-- dialogues
-- action/camera/lighting
-- shot list/storyboard prompts
-- audio design
-- continuity check
-- export
-
-## Context management rule
-
-Never send the whole project to Ollama after the initial story stage.
-
-Use small focused context:
-
-- global story summary
-- current object being generated or revised
-- relevant linked IDs
-- user instruction
-- output schema
-
-Examples:
-
-For revising one character, pass:
-
-- story summary
-- current character JSON
-- revision instruction
-- schema
-- instruction: "Only revise this character."
-
-For generating dialogue for one scene, pass:
-
-- story summary
-- scene JSON
-- only characters present in that scene
-- character speech styles
-- schema
-
-For checking continuity, run scene-by-scene or chunk-by-chunk and then summarize findings.
-
-## File/state rules
-
-Use stable IDs:
-
-```text
-char_001
-scene_001
-scene_001_sub_001
-scene_001_shot_001
-location_001
-prop_001
-```
-
-Every page must save immediately after generation or revision.
-
-Do not overwrite unrelated files when revising one block.
-
-Do not regenerate the whole movie unless the user explicitly asks.
-
-Use JSON schemas/Pydantic models where practical.
-
-## Streaming behavior
-
-Ollama output should stream into Streamlit.
-
-For structured JSON, collect the full streamed response, parse it, validate it, and save it.
-
-If JSON parsing fails, attempt one repair call using the same model with a strict "return valid JSON only" prompt.
-
-## Web search policy
-
-Core version must work without web search.
-
-Web search should be optional and isolated behind a small interface such as:
-
-```text
-core/web_research.py
-```
-
-The app may include a checkbox for genre/style research, but if no web-search backend is configured, show a friendly message and continue with local curated dropdown choices.
-
-Do not make web search a dependency for the core workflow.
-
-## Setup policy
-
-Create:
-
-```text
-setup_and_run.sh
-run_movie_builder.sh
-requirements.txt
-config/movie_builder.local.env
-```
-
-The setup script should:
-
-1. install apt basics
-2. detect GPU only as optional info
-3. install/start Ollama
-4. ask user to choose Ollama models
-5. pull missing models
-6. create venv or conda env
-7. install Python requirements
-8. ask user for Streamlit port
-9. save env config
-10. start Streamlit
-
-No mandatory GPU requirement.
-
-Do not install CUDA or NVIDIA drivers automatically.
-
-Do not install torch unless the app actually imports it.
-
-## Python package policy
-
-Keep dependencies minimal.
-
-Default `requirements.txt`:
-
-```text
-streamlit
-ollama
-pydantic
-jsonschema
-python-dotenv
-```
-
-Do not add heavy packages unless they are used.
-
-## Code style
-
-Prefer:
-
-- simple Python modules
-- clear functions
-- no hidden background services
-- no unnecessary frameworks
-- defensive file handling
-- readable schemas
-- explicit save/load paths
-- idempotent setup scripts
-
-## Initial build order
-
-Build in this order:
-
-1. folder structure
-2. config and state manager
-3. Ollama client
-4. schemas
-5. Page 0 Project Intake
-6. Page 1 Story Builder
-7. Page 2 Character Builder
-8. setup_and_run.sh
-9. run_movie_builder.sh
-10. placeholder pages for later modules
-
-After that, build remaining pages one by one.
+Legacy scene-level accepted dialogue can resume only through exact unique beat-text equality inside its saved scene, with complete coverage and allowed canonical speaker IDs; never bind by order, fuzzy wording or another scene. Preserve canonical bytes, reject ambiguity, and keep new shot-scoped generation strict. Record the actual downstream prompt task so compatibility work does not trigger repeated paid text prefixes.
